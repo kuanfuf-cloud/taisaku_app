@@ -367,7 +367,7 @@
         </div>
     </main>
 
-    <div class="version-text">Ver 5.2 (Auth認証実装版)</div>
+    <div class="version-text">Ver 5.3 (Auth認証＆リダイレクト修正版)</div>
 
     <!-- 🔑 ログイン・登録用モーダル -->
     <div class="modal-overlay" id="auth-user-modal">
@@ -450,6 +450,16 @@
                     }
                 });
 
+                // リダイレクトログイン結果の受け取り
+                auth.getRedirectResult().then(result => {
+                    if (result && result.user) {
+                        closeAuthModal();
+                        showToast("Googleでログインしました！");
+                    }
+                }).catch(error => {
+                    console.error("Redirect Login Error:", error);
+                });
+
                 const badge = document.getElementById('fb-status-badge');
                 if(badge) { 
                     badge.className = 'fb-status fb-connected'; 
@@ -476,7 +486,14 @@
                 closeAuthModal();
                 showToast("Googleでログインしました！");
             } catch (error) {
-                alert("ログイン失敗: " + error.message);
+                console.error("Google Login Error:", error);
+                // ポップアップが制限された場合はリダイレクト方式に切り替え
+                if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    await auth.signInWithRedirect(provider);
+                } else {
+                    alert("ログイン失敗: " + error.message);
+                }
             }
         }
 
