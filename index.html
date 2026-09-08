@@ -68,13 +68,13 @@
         .toast.show { top: 20px; }
         .toast.rank-up { background: #F59E0B; }
 
-        .sidebar { width: 260px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; transition: all 0.3s ease; z-index: 10; }
+        .sidebar { width: 260px; height: 100vh; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
         .sidebar-header { padding: 20px; font-size: 1.2rem; font-weight: bold; background-color: rgba(0,0,0,0.2); text-align: center; }
         .nav-list { list-style: none; padding: 10px 0; overflow-y: auto; flex-grow: 1; }
         .nav-item { padding: 15px 20px; cursor: pointer; transition: all 0.2s ease; border-left: 4px solid transparent; }
         .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); border-left-color: var(--primary); }
 
-        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; position: relative; }
+        .main-content { flex-grow: 1; height: 100vh; padding: 40px; overflow-y: auto; position: relative; }
         .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); min-height: 500px; position: relative; overflow: hidden; transition: background-color 0.3s; margin-top: 20px; }
 
         .theme-switch { position: absolute; top: 20px; right: 40px; display: flex; gap: 10px; z-index: 50; }
@@ -152,12 +152,12 @@
         .modal input { width: 100%; padding: 15px; margin: 20px 0; border: 2px solid var(--input-border); border-radius: 10px; font-size: 1.2rem; text-align: center; outline: none; background: var(--input-bg); color: var(--text); }
 
         @media (max-width: 768px) {
-            body { flex-direction: column; }
+            body { flex-direction: column; overflow-y: auto; }
             .sidebar { width: 100%; height: auto; flex-direction: row; align-items: center; }
             .sidebar-header { padding: 15px; }
             .nav-list { display: flex; overflow-x: auto; padding: 0; }
             .nav-item { white-space: nowrap; border-left: none; border-bottom: 4px solid transparent; }
-            .main-content { padding: 20px; padding-top: 70px; }
+            .main-content { padding: 20px; height: auto; overflow-y: visible; }
             .theme-switch { top: 10px; right: 10px; }
             .stats-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
         }
@@ -184,7 +184,7 @@
             <div id="home-screen" class="screen active">
                 <h2>ホーム</h2>
 
-                <!-- ログインフォーム領域（アプリ内にキレイに配置） -->
+                <!-- ログインフォーム -->
                 <div style="max-width: 360px; margin: 0 auto 25px auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: var(--list-bg); border-radius: 12px; border: 1px solid var(--input-border);">
                   <h3 style="margin-bottom: 5px; font-size: 1.1rem;">🔑 ログイン</h3>
                   <input type="email" id="email" placeholder="メール" style="padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text);">
@@ -289,6 +289,15 @@
                 </div>
 
                 <div class="admin-section">
+                    <h3>📊 ポイント・解いた問題数の編集</h3>
+                    <div class="input-group">
+                        <input type="number" id="edit-solved-count" placeholder="解いた問題数 (10問=1pt)">
+                        <button class="btn btn-primary" onclick="updateSolvedCount()">ポイント数を更新</button>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #6B7280;">※ 10問題ごとに1ポイント、10ポイントごとに1ランクアップします。</p>
+                </div>
+
+                <div class="admin-section">
                     <h3>➕ 新しいテストを作成</h3>
                     <div class="input-group">
                         <select id="new-test-type" style="max-width: 150px;">
@@ -337,7 +346,7 @@
         </div>
     </main>
 
-    <div class="version-text">Ver 4.3</div>
+    <div class="version-text">Ver 4.4</div>
 
     <div class="modal-overlay" id="auth-modal">
         <div class="modal">
@@ -646,8 +655,21 @@
 
         function updateNotice() { appData.notice = document.getElementById('notice-input').value; saveData(); alert('お知らせを更新しました！'); }
 
+        function updateSolvedCount() {
+            const val = parseInt(document.getElementById('edit-solved-count').value);
+            if (!isNaN(val) && val >= 0) {
+                appData.solvedQuestions = val;
+                saveData();
+                alert('ポイント・問題数を変更しました！');
+            } else {
+                alert('正しい数字を入力してください。');
+            }
+        }
+
         function renderSettings() {
             document.getElementById('notice-input').value = appData.notice || '';
+            document.getElementById('edit-solved-count').value = appData.solvedQuestions || 0;
+            
             const select = document.getElementById('admin-test-select');
             const aiSelect = document.getElementById('ai-test-select');
             select.innerHTML = ''; aiSelect.innerHTML = '';
