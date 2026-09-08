@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>対策アプリ</title>
+    <title>対策アプリ (RTDB版)</title>
 
     <!-- Firebase SDK (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <!-- ⬇️ ここを Realtime Database 用に変更しました -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <style>
         :root {
@@ -278,17 +279,21 @@
             <div id="settings-screen" class="screen">
                 <h2>管理者メニュー</h2>
 
-                <!-- ⚙️ Firebase接続設定（新機能） -->
+                <!-- ⚙️ Firebase接続設定 -->
                 <div class="admin-section" style="background: var(--list-bg); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary);">
-                    <h3>⚙️ Firebase（クラウド）接続設定</h3>
+                    <h3>⚙️ Firebase（RTDB）接続設定</h3>
                     <div style="text-align:center;">
                         <span id="fb-status-badge" class="fb-status fb-disconnected">❌ クラウド未接続</span>
                     </div>
-                    <p style="font-size:0.85rem; color:#6B7280; margin-bottom:10px;">Firebaseコンソールから取得した設定情報を貼り付けて保存してください。</p>
+                    <p style="font-size:0.85rem; color:#6B7280; margin-bottom:10px;">
+                        Firebaseコンソールから取得した設定情報を貼り付けて保存してください。<br>
+                        ※Realtime Databaseでは <span style="color:var(--primary); font-weight:bold;">databaseURL</span> が必須です。
+                    </p>
                     
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;" class="input-group">
                         <input type="text" id="fb-apiKey" placeholder="apiKey">
                         <input type="text" id="fb-authDomain" placeholder="authDomain">
+                        <input type="text" id="fb-databaseURL" placeholder="databaseURL (必須)">
                         <input type="text" id="fb-projectId" placeholder="projectId">
                         <input type="text" id="fb-storageBucket" placeholder="storageBucket">
                         <input type="text" id="fb-messagingSenderId" placeholder="messagingSenderId">
@@ -358,7 +363,7 @@
         </div>
     </main>
 
-    <div class="version-text">Ver 4.5</div>
+    <div class="version-text">Ver 5.0 (RTDB)</div>
 
     <div class="modal-overlay" id="auth-modal">
         <div class="modal">
@@ -379,7 +384,7 @@
     <script>
         let db = null;
 
-        // Firebaseの動的初期化
+        // Firebaseの動的初期化 (Realtime Database用)
         function initFirebase() {
             const storedConfig = localStorage.getItem('firebase_config');
             const badge = document.getElementById('fb-status-badge');
@@ -395,8 +400,9 @@
                     if (!firebase.apps.length) {
                         firebase.initializeApp(config);
                     }
-                    db = firebase.firestore();
-                    if(badge) { badge.className = 'fb-status fb-connected'; badge.textContent = '🟢 クラウド接続成功'; }
+                    // FirestoreからRealtime Databaseに変更
+                    db = firebase.database();
+                    if(badge) { badge.className = 'fb-status fb-connected'; badge.textContent = '🟢 クラウド(RTDB)接続成功'; }
                 }
             } catch (e) {
                 console.error("Firebase初期化失敗:", e);
@@ -408,14 +414,15 @@
             const config = {
                 apiKey: document.getElementById('fb-apiKey').value.trim(),
                 authDomain: document.getElementById('fb-authDomain').value.trim(),
+                databaseURL: document.getElementById('fb-databaseURL').value.trim(), // 追加
                 projectId: document.getElementById('fb-projectId').value.trim(),
                 storageBucket: document.getElementById('fb-storageBucket').value.trim(),
                 messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
                 appId: document.getElementById('fb-appId').value.trim()
             };
 
-            if (!config.apiKey || !config.projectId) {
-                return alert("apiKey と projectId は必須です。");
+            if (!config.apiKey || !config.projectId || !config.databaseURL) {
+                return alert("apiKey, projectId, databaseURL は必須です。");
             }
 
             localStorage.setItem('firebase_config', JSON.stringify(config));
@@ -429,6 +436,7 @@
                 const config = JSON.parse(stored);
                 document.getElementById('fb-apiKey').value = config.apiKey || '';
                 document.getElementById('fb-authDomain').value = config.authDomain || '';
+                document.getElementById('fb-databaseURL').value = config.databaseURL || ''; // 追加
                 document.getElementById('fb-projectId').value = config.projectId || '';
                 document.getElementById('fb-storageBucket').value = config.storageBucket || '';
                 document.getElementById('fb-messagingSenderId').value = config.messagingSenderId || '';
@@ -725,8 +733,9 @@
         function updateNotice() { 
             appData.notice = document.getElementById('notice-input').value; 
             saveData(); 
+            // ⬇️ RTDBの書き方に変更
             if (db) {
-                db.collection("settings").doc("notice").set({ notice: appData.notice }).catch(e=>console.error(e));
+                db.ref("settings/notice").set(appData.notice).catch(e => console.error(e));
             }
             alert('お知らせを更新しました！'); 
         }
@@ -781,8 +790,9 @@
             }
 
             try {
-                await db.collection("tests").doc(test.id).set(test);
-                alert(`テスト「${test.title}」をクラウド(Firebase)に公開・保存しました！`);
+                // ⬇️ RTDBの書き方に変更
+                await db.ref("tests/" + test.id).set(test);
+                alert(`テスト「${test.title}」をクラウド(Firebase RTDB)に公開・保存しました！`);
             } catch (error) {
                 console.error("Firebase公開エラー:", error);
                 alert("公開に失敗しました: " + error.message);
@@ -795,27 +805,28 @@
             }
 
             try {
-                const snapshot = await db.collection("tests").get();
-                if (snapshot.empty) {
+                // ⬇️ RTDBの書き方に変更
+                const snapshot = await db.ref("tests").once("value");
+                if (!snapshot.exists()) {
                     return alert("クラウド上に公開されたテストがありません。");
                 }
 
                 const cloudTests = [];
-                snapshot.forEach(doc => {
-                    cloudTests.push(doc.data());
+                snapshot.forEach(childSnapshot => {
+                    cloudTests.push(childSnapshot.val());
                 });
 
                 appData.tests = cloudTests;
                 
-                const noticeDoc = await db.collection("settings").doc("notice").get();
-                if (noticeDoc.exists && noticeDoc.data().notice) {
-                    appData.notice = noticeDoc.data().notice;
+                const noticeSnap = await db.ref("settings/notice").once("value");
+                if (noticeSnap.exists()) {
+                    appData.notice = noticeSnap.val();
                 }
 
                 saveData();
                 renderSettings();
                 renderHome();
-                alert("クラウド(Firebase)から最新のデータを取得・同期しました！");
+                alert("クラウド(Firebase RTDB)から最新のデータを取得・同期しました！");
             } catch (error) {
                 console.error("Firebase取得エラー:", error);
                 alert("データ取得に失敗しました: " + error.message);
