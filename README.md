@@ -1,5 +1,5 @@
-[Uploading gemini-code-1788855604544.html…]()
-# taisaku_app<!DOCTYPE html>
+[gemini-code-1788855604544.html](https://github.com/user-attachments/files/31946936/gemini-code-1788855604544.html)
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
