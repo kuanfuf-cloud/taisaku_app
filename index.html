@@ -7,7 +7,6 @@
 
     <!-- Firebase SDK (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <!-- ⬇️ ここを Realtime Database 用に変更しました -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <style>
@@ -279,27 +278,11 @@
             <div id="settings-screen" class="screen">
                 <h2>管理者メニュー</h2>
 
-                <!-- ⚙️ Firebase接続設定 -->
-                <div class="admin-section" style="background: var(--list-bg); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary);">
-                    <h3>⚙️ Firebase（RTDB）接続設定</h3>
-                    <div style="text-align:center;">
-                        <span id="fb-status-badge" class="fb-status fb-disconnected">❌ クラウド未接続</span>
-                    </div>
-                    <p style="font-size:0.85rem; color:#6B7280; margin-bottom:10px;">
-                        Firebaseコンソールから取得した設定情報を貼り付けて保存してください。<br>
-                        ※Realtime Databaseでは <span style="color:var(--primary); font-weight:bold;">databaseURL</span> が必須です。
-                    </p>
-                    
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;" class="input-group">
-                        <input type="text" id="fb-apiKey" placeholder="apiKey">
-                        <input type="text" id="fb-authDomain" placeholder="authDomain">
-                        <input type="text" id="fb-databaseURL" placeholder="databaseURL (必須)">
-                        <input type="text" id="fb-projectId" placeholder="projectId">
-                        <input type="text" id="fb-storageBucket" placeholder="storageBucket">
-                        <input type="text" id="fb-messagingSenderId" placeholder="messagingSenderId">
-                        <input type="text" id="fb-appId" placeholder="appId">
-                    </div>
-                    <button class="btn btn-secondary" onclick="saveFirebaseConfig()" style="margin-top:10px; margin-bottom:0;">設定を保存してクラウドに接続</button>
+                <!-- ⚙️ Firebase接続ステータス -->
+                <div class="admin-section" style="background: var(--list-bg); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary); text-align: center;">
+                    <h3>⚙️ クラウド（Firebase RTDB）接続状態</h3>
+                    <span id="fb-status-badge" class="fb-status fb-connected">🟢 クラウド自動接続中</span>
+                    <p style="font-size:0.85rem; color:#6B7280; margin-top:5px;">接続設定はプログラム内に組み込み済みです。どの端末からでも自動接続されます。</p>
                 </div>
 
                 <div class="admin-section">
@@ -336,9 +319,8 @@
                     <h3>📝 個別問題の追加・管理</h3>
                     <select id="admin-test-select" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px;" onchange="renderSettingsQuestions()"></select>
                     
-                    <!-- Firebase公開・同期ボタンエリア -->
                     <div class="input-group" style="margin-bottom: 15px;">
-                        <button class="btn btn-secondary" onclick="publishTestToFirebase()" style="flex: 1; margin-bottom: 0; padding: 10px;">☁️ このテストをFirebaseに公開</button>
+                        <button class="btn btn-secondary" onclick="publishTestToFirebase()" style="flex: 1; margin-bottom: 0; padding: 10px;">☁️ このテストをクラウドに公開</button>
                         <button class="btn btn-outline" onclick="fetchTestsFromFirebase()" style="flex: 1; margin-bottom: 0; padding: 10px;">🔄 クラウドから再読み込み</button>
                     </div>
 
@@ -363,7 +345,7 @@
         </div>
     </main>
 
-    <div class="version-text">Ver 5.0 (RTDB)</div>
+    <div class="version-text">Ver 5.1 (RTDB埋め込み版)</div>
 
     <div class="modal-overlay" id="auth-modal">
         <div class="modal">
@@ -377,70 +359,43 @@
 
     <button class="admin-btn" onclick="openModal()">
         <svg viewBox="0 0 24 24">
-            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12,0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
         </svg>
     </button>
 
     <script>
+        // Firebase 設定情報の直接埋め込み
+        const firebaseConfig = {
+            apiKey: "AIzaSyAeKKJheVoVsEkhFJNiRvGR00kKQhFlAb0",
+            authDomain: "taisakun-98c80.firebaseapp.com",
+            databaseURL: "https://taisakun-98c80-default-rtdb.firebaseio.com/",
+            projectId: "taisakun-98c80",
+            storageBucket: "taisakun-98c80.firebasestorage.app",
+            messagingSenderId: "1099363755687",
+            appId: "1:1099363755687:web:e18867d9d9c39cbd64dd82"
+        };
+
         let db = null;
 
-        // Firebaseの動的初期化 (Realtime Database用)
         function initFirebase() {
-            const storedConfig = localStorage.getItem('firebase_config');
-            const badge = document.getElementById('fb-status-badge');
-            
-            if (!storedConfig) {
-                if(badge) { badge.className = 'fb-status fb-disconnected'; badge.textContent = '❌ クラウド未接続'; }
-                return;
-            }
-
             try {
-                const config = JSON.parse(storedConfig);
-                if (config.apiKey && config.projectId) {
-                    if (!firebase.apps.length) {
-                        firebase.initializeApp(config);
-                    }
-                    // FirestoreからRealtime Databaseに変更
-                    db = firebase.database();
-                    if(badge) { badge.className = 'fb-status fb-connected'; badge.textContent = '🟢 クラウド(RTDB)接続成功'; }
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.database();
+                
+                const badge = document.getElementById('fb-status-badge');
+                if(badge) { 
+                    badge.className = 'fb-status fb-connected'; 
+                    badge.textContent = '🟢 クラウド(RTDB)自動接続成功'; 
                 }
             } catch (e) {
                 console.error("Firebase初期化失敗:", e);
-                if(badge) { badge.className = 'fb-status fb-disconnected'; badge.textContent = '⚠️ 設定エラー'; }
-            }
-        }
-
-        function saveFirebaseConfig() {
-            const config = {
-                apiKey: document.getElementById('fb-apiKey').value.trim(),
-                authDomain: document.getElementById('fb-authDomain').value.trim(),
-                databaseURL: document.getElementById('fb-databaseURL').value.trim(), // 追加
-                projectId: document.getElementById('fb-projectId').value.trim(),
-                storageBucket: document.getElementById('fb-storageBucket').value.trim(),
-                messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
-                appId: document.getElementById('fb-appId').value.trim()
-            };
-
-            if (!config.apiKey || !config.projectId || !config.databaseURL) {
-                return alert("apiKey, projectId, databaseURL は必須です。");
-            }
-
-            localStorage.setItem('firebase_config', JSON.stringify(config));
-            alert("Firebaseの設定を保存しました！再読み込みして適用します。");
-            location.reload();
-        }
-
-        function loadSavedFirebaseInputs() {
-            const stored = localStorage.getItem('firebase_config');
-            if (stored) {
-                const config = JSON.parse(stored);
-                document.getElementById('fb-apiKey').value = config.apiKey || '';
-                document.getElementById('fb-authDomain').value = config.authDomain || '';
-                document.getElementById('fb-databaseURL').value = config.databaseURL || ''; // 追加
-                document.getElementById('fb-projectId').value = config.projectId || '';
-                document.getElementById('fb-storageBucket').value = config.storageBucket || '';
-                document.getElementById('fb-messagingSenderId').value = config.messagingSenderId || '';
-                document.getElementById('fb-appId').value = config.appId || '';
+                const badge = document.getElementById('fb-status-badge');
+                if(badge) { 
+                    badge.className = 'fb-status fb-disconnected'; 
+                    badge.textContent = '⚠️ 接続エラー'; 
+                }
             }
         }
 
@@ -733,7 +688,6 @@
         function updateNotice() { 
             appData.notice = document.getElementById('notice-input').value; 
             saveData(); 
-            // ⬇️ RTDBの書き方に変更
             if (db) {
                 db.ref("settings/notice").set(appData.notice).catch(e => console.error(e));
             }
@@ -741,7 +695,6 @@
         }
 
         function renderSettings() {
-            loadSavedFirebaseInputs();
             document.getElementById('notice-input').value = appData.notice || '';
             const select = document.getElementById('admin-test-select');
             const aiSelect = document.getElementById('ai-test-select');
@@ -785,12 +738,9 @@
             const test = appData.tests.find(t => t.id === targetId);
             if (!test) return alert("テストが選択されていません。");
 
-            if (!db) {
-                return alert("Firebaseの設定がされていません。上部の「Firebase接続設定」に入力して保存してください。");
-            }
+            if (!db) return alert("Firebaseに接続されていません。");
 
             try {
-                // ⬇️ RTDBの書き方に変更
                 await db.ref("tests/" + test.id).set(test);
                 alert(`テスト「${test.title}」をクラウド(Firebase RTDB)に公開・保存しました！`);
             } catch (error) {
@@ -800,12 +750,9 @@
         }
 
         async function fetchTestsFromFirebase() {
-            if (!db) {
-                return alert("Firebaseの設定がされていません。上部の「Firebase接続設定」に入力して保存してください。");
-            }
+            if (!db) return alert("Firebaseに接続されていません。");
 
             try {
-                // ⬇️ RTDBの書き方に変更
                 const snapshot = await db.ref("tests").once("value");
                 if (!snapshot.exists()) {
                     return alert("クラウド上に公開されたテストがありません。");
