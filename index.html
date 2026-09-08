@@ -367,7 +367,7 @@
         </div>
     </main>
 
-    <div class="version-text">Ver 5.3 (Auth認証＆リダイレクト修正版)</div>
+    <div class="version-text">Ver 5.4 (ユーザーごとの成績保存対応版)</div>
 
     <!-- 🔑 ログイン・登録用モーダル -->
     <div class="modal-overlay" id="auth-user-modal">
@@ -432,8 +432,7 @@
                 db = firebase.database();
                 auth = firebase.auth();
                 
-                // 認証状態の監視
-                auth.onAuthStateChanged(user => {
+                auth.onAuthStateChanged(async (user) => {
                     currentUser = user;
                     const nameEl = document.getElementById('user-display-name');
                     const loginBtn = document.getElementById('login-open-btn');
@@ -443,6 +442,22 @@
                         nameEl.textContent = user.displayName || user.email;
                         loginBtn.style.display = 'none';
                         logoutBtn.style.display = 'inline-block';
+
+                        // ログイン成功時、クラウドからユーザーの成績データを読み込む
+                        try {
+                            const snap = await db.ref('users/' + user.uid + '/stats').once('value');
+                            if (snap.exists()) {
+                                const userData = snap.val();
+                                if (userData.solvedQuestions !== undefined) {
+                                    appData.solvedQuestions = userData.solvedQuestions;
+                                    saveData();
+                                    renderHome();
+                                }
+                            }
+                        } catch (e) {
+                            console.error("ユーザーデータ読み込みエラー:", e);
+                        }
+
                     } else {
                         nameEl.textContent = '未ログイン';
                         loginBtn.style.display = 'inline-block';
@@ -555,6 +570,13 @@
         function saveData() {
             localStorage.setItem('chiriTestData', JSON.stringify(appData));
             updateSidebar();
+
+            // ログイン中であれば、Firebaseのユーザー専用領域にも成績を保存
+            if (currentUser && db) {
+                db.ref('users/' + currentUser.uid + '/stats').set({
+                    solvedQuestions: appData.solvedQuestions
+                }).catch(e => console.error("ユーザーデータ保存エラー:", e));
+            }
         }
 
         function setTheme(themeMode) {
