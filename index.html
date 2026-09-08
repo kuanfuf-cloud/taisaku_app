@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>対策アプリ - Firebase版</title>
+    <title>対策アプリ</title>
+
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         :root {
             --primary: #4F46E5;
             --primary-hover: #4338CA;
-            --secondary: #10B981;
+            --secondary: #10B981; 
             --secondary-hover: #059669;
             --sidebar-bg: #1F2937;
             --sidebar-hover: #374151;
@@ -38,49 +43,66 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; transition: background-color 0.3s, color 0.3s; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
 
-        .toast { position: fixed; top: -60px; left: 50%; transform: translateX(-50%); background: var(--secondary); color: white; padding: 12px 25px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-weight: bold; font-size: 1rem; z-index: 2000; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .toast {
+            position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
+            background: var(--secondary); color: white; padding: 12px 25px; border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-weight: bold; font-size: 1rem;
+            z-index: 2000; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
         .toast.show { top: 20px; }
         .toast.rank-up { background: #F59E0B; }
-        .toast.error { background: var(--danger); }
 
-        .sidebar { width: 260px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; z-index: 10; }
+        .sidebar { width: 260px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; transition: all 0.3s ease; z-index: 10; }
         .sidebar-header { padding: 20px; font-size: 1.2rem; font-weight: bold; background-color: rgba(0,0,0,0.2); text-align: center; }
-        .sidebar-user { padding: 10px 20px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .nav-list { list-style: none; padding: 10px 0; overflow-y: auto; flex-grow: 1; }
         .nav-item { padding: 15px 20px; cursor: pointer; transition: all 0.2s ease; border-left: 4px solid transparent; }
         .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); border-left-color: var(--primary); }
 
         .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; position: relative; }
-        .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); min-height: 500px; position: relative; overflow: hidden; transition: background-color 0.3s; margin-top: 20px; padding: 40px; }
+        .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); min-height: 500px; position: relative; overflow: hidden; transition: background-color 0.3s; margin-top: 20px; }
 
-        .theme-switch { position: absolute; top: 20px; right: 40px; z-index: 50; }
+        .theme-switch { position: absolute; top: 20px; right: 40px; display: flex; gap: 10px; z-index: 50; }
         .theme-switch button { background: var(--card-bg); border: 1px solid var(--input-border); color: var(--text); border-radius: 50%; width: 45px; height: 45px; cursor: pointer; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .theme-switch button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .theme-switch button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); border-color: var(--primary); }
 
-        .screen { display: none; }
-        .screen.active { display: flex; animation: fadeIn 0.4s ease forwards; flex-direction: column; }
+        .screen { display: none; padding: 40px; flex-direction: column; }
+        .screen.active { display: flex; animation: fadeIn 0.4s ease forwards; }
 
         h1, h2, h3 { text-align: center; margin-bottom: 20px; color: var(--text); }
-
-        .notice-board { background: var(--notice-bg); border-left: 5px solid #F59E0B; padding: 20px; border-radius: 8px; margin-bottom: 20px; transition: background-color 0.3s; }
-        .notice-board h3 { text-align: left; margin-bottom: 10px; color: #D97706; }
+        
+        .notice-board { background: var(--notice-bg); border-left: 5px solid #F59E0B; padding: 20px; border-radius: 8px; margin-bottom: 20px; animation: slideIn 0.5s ease forwards; transition: background-color 0.3s; }
+        .notice-board h3 { text-align: left; margin-bottom: 10px; color: #D97706; font-size: 1.1rem; }
         .notice-board p { white-space: pre-wrap; line-height: 1.6; }
 
         .stats-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .stat-box { background: var(--list-bg); border: 1px solid var(--input-border); border-radius: 10px; padding: 15px; text-align: center; }
         .stat-num { font-size: 1.8rem; font-weight: bold; color: var(--primary); margin-bottom: 5px; }
         .stat-label { font-size: 0.85rem; color: #6B7280; font-weight: bold; }
-
-        .test-list { display: grid; gap: 15px; }
-        .test-item { background: var(--item-bg); padding: 20px; border-radius: 10px; border: 1px solid var(--input-border); cursor: pointer; transition: all 0.2s; }
-        .test-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .test-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
-        .test-meta { font-size: 0.85rem; color: #6B7280; }
+        .stat-sub { font-size: 0.75rem; color: #9CA3AF; margin-top: 3px; }
+        
+        .random-q-box { background: var(--card-bg); border: 2px dashed var(--primary); border-radius: 10px; padding: 25px; text-align: center; margin-bottom: 20px; }
+        .random-q-box h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: 15px; }
+        .random-q-text { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; line-height: 1.5; }
 
         .btn { background: var(--primary); color: white; border: none; padding: 15px 20px; border-radius: 10px; font-size: 1rem; cursor: pointer; transition: all 0.2s ease; text-align: center; width: 100%; margin-bottom: 15px; font-weight: bold; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -92,789 +114,779 @@
         .btn-danger:hover { background: var(--danger-hover); }
         .btn-outline { background: transparent; color: var(--text); border: 2px solid var(--input-border); }
         .btn-outline:hover { background: var(--primary); color: white; border-color: var(--primary); }
-        .btn-small { width: auto; padding: 8px 15px; font-size: 0.9rem; margin: 0; }
+        .btn-interrupt { background: transparent; color: var(--danger); border: 2px solid var(--danger); margin-top: 10px; }
+        .btn-interrupt:hover { background: var(--danger); color: white; }
 
-        .question-box { font-size: 1.4rem; font-weight: bold; line-height: 1.6; text-align: center; margin-bottom: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .progress { text-align: center; color: #6B7280; font-size: 1rem; margin-bottom: 20px; font-weight: bold; }
+        .question-box { font-size: 1.4rem; font-weight: bold; line-height: 1.6; text-align: center; margin-bottom: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center; position: relative;}
         .answer-box { font-size: 1.6rem; font-weight: bold; color: var(--danger); text-align: center; margin-bottom: 30px; min-height: 80px; display: flex; align-items: center; justify-content: center; border-top: 2px dashed var(--input-border); visibility: hidden; opacity: 0; transition: opacity 0.3s ease; }
         .answer-box.show { visibility: visible; opacity: 1; }
 
         .choice-btn { font-size: 1.2rem; padding: 15px; text-align: center; margin-bottom: 10px; }
+        .choice-btn:disabled { cursor: not-allowed; transform: none; box-shadow: none; }
 
-        .result-mark { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%) scale(0.5); font-size: 12rem; opacity: 0; pointer-events: none; z-index: 100; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .result-mark {
+            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%) scale(0.5);
+            font-size: 12rem; opacity: 0; pointer-events: none; z-index: 100;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
         .result-mark.show-correct { opacity: 0.95; transform: translate(-50%, -50%) scale(1); color: var(--secondary); }
         .result-mark.show-wrong { opacity: 0.95; transform: translate(-50%, -50%) scale(1); color: var(--danger); }
 
-        .auth-form { max-width: 400px; margin: 0 auto; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 1rem; background: var(--input-bg); color: var(--text); }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
-
-        .auth-link { text-align: center; margin-top: 15px; }
-        .auth-link a { color: var(--primary); text-decoration: none; cursor: pointer; }
-        .auth-link a:hover { text-decoration: underline; }
-
+        .admin-section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--input-border); }
+        .admin-section h3 { text-align: left; margin-bottom: 12px; font-size: 1.1rem; color: var(--text); }
         .input-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-        .input-group input, .input-group select { flex-grow: 1; min-width: 150px; padding: 12px; border: 1px solid var(--input-border); border-radius: 8px; }
+        .input-group input, .input-group select, textarea { flex-grow: 1; padding: 12px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 1rem; background: var(--input-bg); color: var(--text); transition: all 0.3s; }
+        .input-group input:focus, .input-group select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        .input-group button { width: auto; margin-bottom: 0; padding: 12px 20px; flex-shrink: 0; }
+        .settings-list { max-height: 250px; overflow-y: auto; margin-bottom: 20px; background: var(--list-bg); border-radius: 10px; padding: 10px; }
+        .settings-item { background: var(--item-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .settings-item-text { font-size: 0.95rem; line-height: 1.4; }
+        .delete-btn { background: var(--danger); color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
+        
+        .admin-btn { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--primary); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center; cursor: pointer; border: none; transition: all 0.3s; z-index: 100; }
+        .admin-btn:hover { transform: rotate(90deg) scale(1.1); background: var(--primary-hover); }
+        .admin-btn svg { width: 28px; height: 28px; fill: white; }
+        
+        .version-text { position: fixed; bottom: 8px; right: 15px; font-size: 0.8rem; color: #9CA3AF; z-index: 90; pointer-events: none; font-weight: bold; }
 
-        .settings-list { display: flex; flex-direction: column; gap: 10px; }
-        .settings-item { background: var(--list-bg); padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .settings-item-text { flex-grow: 1; font-size: 0.95rem; }
-        .delete-btn { background: var(--danger); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
-        .delete-btn:hover { background: var(--danger-hover); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(3px); }
+        .modal { background: var(--card-bg); color: var(--text); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+        .modal input { width: 100%; padding: 15px; margin: 20px 0; border: 2px solid var(--input-border); border-radius: 10px; font-size: 1.2rem; text-align: center; outline: none; background: var(--input-bg); color: var(--text); }
 
-        .progress { text-align: center; color: #6B7280; font-size: 1rem; margin-bottom: 20px; font-weight: bold; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center; }
-        .modal.show { display: flex; }
-        .modal-content { background: var(--card-bg); border-radius: 15px; padding: 30px; max-width: 500px; width: 90%; }
-
-        .loading { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; }
-        .loading.show { display: block; }
-        .spinner { width: 40px; height: 40px; border: 4px solid var(--input-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .fb-status { font-size: 0.85rem; font-weight: bold; padding: 6px 12px; border-radius: 20px; display: inline-block; margin-bottom: 15px; }
+        .fb-connected { background: #D1FAE5; color: #065F46; }
+        .fb-disconnected { background: #FEE2E2; color: #991B1B; }
 
         @media (max-width: 768px) {
-            .sidebar { width: 200px; }
-            .main-content { padding: 20px; }
-            .container { padding: 20px !important; }
-            .stats-container { grid-template-columns: repeat(2, 1fr); }
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; flex-direction: row; align-items: center; }
+            .sidebar-header { padding: 15px; }
+            .nav-list { display: flex; overflow-x: auto; padding: 0; }
+            .nav-item { white-space: nowrap; border-left: none; border-bottom: 4px solid transparent; }
+            .main-content { padding: 20px; padding-top: 70px; }
+            .theme-switch { top: 10px; right: 10px; }
+            .stats-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
         }
     </style>
 </head>
 <body>
-    <div id="loading" class="loading"><div class="spinner"></div></div>
 
-    <!-- 認証画面 -->
-    <div id="auth-screen" class="screen active" style="justify-content: center; align-items: center; position: relative;">
-        <div class="container" style="display: flex; flex-direction: column; justify-content: center; max-width: 500px; position: relative;">
-            <h1>対策アプリ</h1>
-            <div id="auth-login" class="auth-form">
-                <h2>ログイン</h2>
-                <form onsubmit="handleLogin(event)">
-                    <div class="form-group">
-                        <label>メールアドレス</label>
-                        <input type="email" id="login-email" required>
-                    </div>
-                    <div class="form-group">
-                        <label>パスワード</label>
-                        <input type="password" id="login-pass" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">ログイン</button>
-                </form>
-                <button class="btn btn-outline" onclick="handleGoogleLogin()" style="margin-bottom: 15px;">
-                    🔵 Googleでログイン
-                </button>
-                <div class="auth-link">
-                    初めてですか？ <a onclick="showAuthForm('signup')">アカウント作成</a>
-                </div>
-            </div>
-            <div id="auth-signup" class="auth-form" style="display:none;">
-                <h2>アカウント作成</h2>
-                <form onsubmit="handleSignup(event)">
-                    <div class="form-group">
-                        <label>メールアドレス</label>
-                        <input type="email" id="signup-email" required>
-                    </div>
-                    <div class="form-group">
-                        <label>パスワード</label>
-                        <input type="password" id="signup-pass" required minlength="6">
-                    </div>
-                    <button type="submit" class="btn btn-primary">作成</button>
-                </form>
-                <div class="auth-link">
-                    アカウントをお持ちですか？ <a onclick="showAuthForm('login')">ログイン</a>
-                </div>
-            </div>
+    <div id="toast" class="toast">メッセージ</div>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">対策アプリ</div>
+        <ul class="nav-list" id="nav-list"></ul>
+    </aside>
+
+    <main class="main-content">
+        <div class="theme-switch">
+            <button onclick="setTheme('light')" title="ホワイトモードにする">☀️</button>
+            <button onclick="setTheme('dark')" title="ダークモードにする">🌙</button>
         </div>
 
-        <!-- スキップボタン（右下） -->
-        <button class="btn btn-outline" onclick="skipLogin()" style="position: absolute; bottom: 30px; right: 30px; width: auto; padding: 12px 25px; margin: 0;">スキップ →</button>
-    </div>
-
-    <!-- メイン画面 -->
-    <div id="main-screen" style="display:none; flex: 1; display: flex;">
-        <div class="sidebar">
-            <div class="sidebar-header">📚 対策アプリ</div>
-            <div class="sidebar-user" id="sidebar-user"></div>
-            <ul class="nav-list">
-                <li class="nav-item active" data-screen="home-screen">🏠 ホーム</li>
-                <li class="nav-item" data-screen="tests-screen">📖 テスト一覧</li>
-                <li class="nav-item" data-screen="settings-screen">⚙️ テスト管理</li>
-                <li class="nav-item" onclick="openAdminModal()">🔐 管理者</li>
-                <li class="nav-item" onclick="handleLogout()">🚪 ログアウト</li>
-            </ul>
-        </div>
-
-        <div style="flex-grow:1; display:flex; flex-direction:column; position:relative;">
-            <div class="theme-switch">
-                <button onclick="toggleTheme()">🌙</button>
-            </div>
-
+        <div class="container">
+            
             <!-- ホーム画面 -->
             <div id="home-screen" class="screen active">
-                <div class="container">
-                    <h1>ホーム</h1>
-                    <div class="notice-board">
-                        <h3>📢 お知らせ</h3>
-                        <p id="notice-text">Firebaseと連携しました！</p>
-                    </div>
-                    <div class="stats-container">
-                        <div class="stat-box">
-                            <div class="stat-num" id="stat-total">0</div>
-                            <div class="stat-label">合計解答数</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-num" id="stat-correct">0</div>
-                            <div class="stat-label">正解数</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-num" id="stat-rate">0%</div>
-                            <div class="stat-label">正答率</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-num" id="stat-tests">0</div>
-                            <div class="stat-label">テスト数</div>
-                        </div>
-                    </div>
-                    <h2>最近のテスト</h2>
-                    <div id="recent-tests" class="test-list"></div>
+                <h2>ホーム</h2>
+                
+                <div class="notice-board">
+                    <h3>📢 お知らせ</h3>
+                    <p id="notice-text">読み込み中...</p>
                 </div>
+
+                <div class="stats-container">
+                    <div class="stat-box" style="border-color: #F59E0B; background: rgba(245,158,11,0.05);">
+                        <div class="stat-num" id="stat-rank" style="color:#F59E0B;">1</div>
+                        <div class="stat-label">現在のランク</div>
+                        <div class="stat-sub" id="stat-next-rank">あと10pt</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num" id="stat-points">0</div>
+                        <div class="stat-label">所持ポイント</div>
+                        <div class="stat-sub" id="stat-next-point">あと10問</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num" id="stat-test-count">0</div>
+                        <div class="stat-label">登録テスト数</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num" id="stat-q-count">0</div>
+                        <div class="stat-label">総問題数</div>
+                    </div>
+                </div>
+
+                <div class="random-q-box" id="random-q-container">
+                    <h3>💡 今日のワンポイント復習</h3>
+                    <p class="random-q-text" id="random-q-text">問題を読み込み中...</p>
+                    <button class="btn btn-outline" style="width: auto; padding: 10px 30px;" onclick="showRandomAnswer()" id="random-a-btn">答えを見る</button>
+                    <p id="random-a-text" style="display:none; color:var(--danger); font-weight:bold; font-size:1.4rem; margin-top:15px;"></p>
+                </div>
+
+                <p style="text-align: center; color: #6B7280; margin-top: 20px;">左のメニューからテストを選択して学習を始めましょう。</p>
             </div>
 
-            <!-- テスト一覧画面 -->
-            <div id="tests-screen" class="screen">
-                <div class="container">
-                    <h1>テスト一覧</h1>
-                    <div id="public-tests" class="test-list"></div>
-                </div>
+            <!-- テスト開始画面 -->
+            <div id="test-intro-screen" class="screen">
+                <h2 id="intro-title">テストタイトル</h2>
+                <p style="text-align: center; margin-bottom: 5px; font-size: 1.2rem; font-weight: bold;">問題数: <span id="intro-count">0</span>問</p>
+                <p style="text-align: center; margin-bottom: 10px; font-size: 0.95rem; color: var(--primary); font-weight: bold;" id="intro-type">形式: 一問一答</p>
+                
+                <p style="text-align: center; margin-bottom: 30px; font-size: 0.95rem; color: #6B7280; background: var(--list-bg); padding: 10px; border-radius: 8px; display: inline-block; align-self: center;" id="intro-time">
+                    ⏳ 目安時間: 約 -- 分
+                </p>
+
+                <button class="btn btn-primary" onclick="startTest()">テストを始める</button>
             </div>
 
-            <!-- テスト管理画面 -->
+            <!-- テスト実行画面 -->
+            <div id="test-screen" class="screen" style="position: relative;">
+                <div id="result-mark" class="result-mark"></div>
+
+                <div class="progress" id="progress">Q. 1 / 50</div>
+                <div class="question-box" id="question-text">問題文</div>
+                
+                <div id="qa-ui">
+                    <div class="answer-box" id="answer-text">答え</div>
+                    <button class="btn btn-primary" id="action-btn" onclick="handleAction()">答えを見る</button>
+                </div>
+
+                <div id="choice-ui" style="display: none; flex-direction: column;">
+                    <button class="btn btn-outline choice-btn" onclick="checkChoice(0)">選択肢1</button>
+                    <button class="btn btn-outline choice-btn" onclick="checkChoice(1)">選択肢2</button>
+                    <button class="btn btn-outline choice-btn" onclick="checkChoice(2)">選択肢3</button>
+                    
+                    <div style="min-height: 50px; margin-top: 15px;">
+                        <button class="btn btn-secondary" id="next-choice-btn" onclick="nextChoiceQuestion()" style="visibility: hidden;">次の問題へ</button>
+                    </div>
+                </div>
+
+                <button class="btn btn-interrupt" onclick="selectTest(currentTestId)">テストを中断</button>
+            </div>
+
+            <!-- 完了画面 -->
+            <div id="result-screen" class="screen">
+                <h2>テスト終了！</h2>
+                <p style="text-align: center; margin-bottom: 30px; font-size: 1.2rem;">お疲れ様でした！</p>
+                <button class="btn btn-primary" onclick="selectTest(currentTestId)">もう一度挑戦する</button>
+                <button class="btn btn-outline" onclick="goHome()">ホームに戻る</button>
+            </div>
+
+            <!-- 設定画面 -->
             <div id="settings-screen" class="screen">
-                <div class="container">
-                    <h1>テスト管理</h1>
-                    <div style="margin-bottom:30px;">
-                        <h3>📝 新しいテストを作成</h3>
-                        <div class="input-group">
-                            <input type="text" id="new-test-title" placeholder="テストのタイトル">
-                            <select id="new-test-type">
-                                <option value="qa">Q&A形式</option>
-                                <option value="3choice">3択形式</option>
-                            </select>
-                            <button class="btn btn-secondary btn-small" onclick="createNewTest()">作成</button>
-                        </div>
-                        <label style="font-size:0.9rem;">
-                            <input type="checkbox" id="new-test-public"> 公開テスト
-                        </label>
-                    </div>
+                <h2>管理者メニュー</h2>
 
-                    <div style="margin-bottom:30px;">
-                        <h3>❓ 問題を管理</h3>
-                        <select id="admin-test-select" onchange="renderSettingsQuestions()" style="width:100%; padding:10px; border:1px solid var(--input-border); border-radius:8px; margin-bottom:15px;">
-                            <option>テストを選択...</option>
+                <!-- ⚙️ Firebase接続設定（新機能） -->
+                <div class="admin-section" style="background: var(--list-bg); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary);">
+                    <h3>⚙️ Firebase（クラウド）接続設定</h3>
+                    <div style="text-align:center;">
+                        <span id="fb-status-badge" class="fb-status fb-disconnected">❌ クラウド未接続</span>
+                    </div>
+                    <p style="font-size:0.85rem; color:#6B7280; margin-bottom:10px;">Firebaseコンソールから取得した設定情報を貼り付けて保存してください。</p>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;" class="input-group">
+                        <input type="text" id="fb-apiKey" placeholder="apiKey">
+                        <input type="text" id="fb-authDomain" placeholder="authDomain">
+                        <input type="text" id="fb-projectId" placeholder="projectId">
+                        <input type="text" id="fb-storageBucket" placeholder="storageBucket">
+                        <input type="text" id="fb-messagingSenderId" placeholder="messagingSenderId">
+                        <input type="text" id="fb-appId" placeholder="appId">
+                    </div>
+                    <button class="btn btn-secondary" onclick="saveFirebaseConfig()" style="margin-top:10px; margin-bottom:0;">設定を保存してクラウドに接続</button>
+                </div>
+
+                <div class="admin-section">
+                    <h3>📢 お知らせの編集</h3>
+                    <textarea id="notice-input" rows="3" placeholder="ホーム画面に表示するお知らせを入力"></textarea>
+                    <button class="btn btn-primary" onclick="updateNotice()" style="margin-top: 8px;">お知らせを更新</button>
+                </div>
+
+                <div class="admin-section">
+                    <h3>➕ 新しいテストを作成</h3>
+                    <div class="input-group">
+                        <select id="new-test-type" style="max-width: 150px;">
+                            <option value="qa">一問一答</option>
+                            <option value="3choice">３択問題</option>
                         </select>
-
-                        <div id="qa-inputs" style="display:none; margin-bottom:15px;">
-                            <textarea id="new-q-text" placeholder="問題文" style="width:100%; padding:10px; border:1px solid var(--input-border); border-radius:8px; min-height:80px; margin-bottom:10px;"></textarea>
-                            <textarea id="new-a-text" placeholder="答え" style="width:100%; padding:10px; border:1px solid var(--input-border); border-radius:8px; min-height:80px; margin-bottom:10px;"></textarea>
-                            <button class="btn btn-secondary btn-small" onclick="addQuestion()">問題を追加</button>
-                        </div>
-
-                        <div id="choice-inputs" style="display:none; margin-bottom:15px;">
-                            <textarea id="new-c-q" placeholder="問題文" style="width:100%; padding:10px; border:1px solid var(--input-border); border-radius:8px; min-height:60px; margin-bottom:10px;"></textarea>
-                            <input type="text" id="new-c-a" placeholder="⭕️ 正解" style="width:100%; padding:10px; border:1px solid var(--input-border); border-radius:8px; margin-bottom:10px;">
-                            <input type="text" id="new-c-w1" placeholder="❌ 間違い1" style="width:100%; padding:10px; border:1px solid var(--input-border); border-radius:8px; margin-bottom:10px;">
-                            <input type="text" id="new-c-w2" placeholder="❌ 間違い2" style="width:100%; padding:10px; border:1px solid var(--input-border); border-radius:8px; margin-bottom:10px;">
-                            <button class="btn btn-secondary btn-small" onclick="addQuestion()">問題を追加</button>
-                        </div>
-
-                        <div id="settings-list" class="settings-list"></div>
+                        <input type="text" id="new-test-title" placeholder="新しいテストの名前">
+                        <button class="btn btn-primary" onclick="createNewTest()">作成</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- クイズ画面 -->
-            <div id="quiz-screen" class="screen">
-                <div class="container">
-                    <div style="text-align:center; margin-bottom:20px;">
-                        <button class="btn btn-outline btn-small" onclick="exitQuiz()">← 戻る</button>
+                <div class="admin-section">
+                    <h3>🤖 AI自動問題生成（一括追加）</h3>
+                    <p style="font-size: 0.85rem; margin-bottom: 10px; color: #6B7280; line-height: 1.5;">
+                        AIに生成してもらったテキストを貼り付けて一括追加します。<br>
+                        <strong>一問一答：</strong> 「問題, 答え」<br>
+                        <strong>３択問題：</strong> 「問題, 答え, 間違い1, 間違い2」
+                    </p>
+                    <select id="ai-test-select" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px;"></select>
+                    <textarea id="ai-import-text" rows="4" placeholder="ここに貼り付けてください..."></textarea>
+                    <button class="btn" onclick="importFromAI()" style="margin-top: 8px; background: #10B981;">AIの問題を一括追加する</button>
+                </div>
+
+                <div class="admin-section">
+                    <h3>📝 個別問題の追加・管理</h3>
+                    <select id="admin-test-select" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px;" onchange="renderSettingsQuestions()"></select>
+                    
+                    <!-- Firebase公開・同期ボタンエリア -->
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <button class="btn btn-secondary" onclick="publishTestToFirebase()" style="flex: 1; margin-bottom: 0; padding: 10px;">☁️ このテストをFirebaseに公開</button>
+                        <button class="btn btn-outline" onclick="fetchTestsFromFirebase()" style="flex: 1; margin-bottom: 0; padding: 10px;">🔄 クラウドから再読み込み</button>
                     </div>
-                    <h1 id="quiz-title">クイズ</h1>
-                    <div class="progress" id="quiz-progress"></div>
-                    <div class="question-box" id="quiz-question"></div>
-                    <div id="quiz-result" class="result-mark"></div>
-                    <div id="quiz-content"></div>
-                    <div style="margin-top:20px; text-align:center;">
-                        <button id="next-btn" class="btn btn-secondary" onclick="nextQuestion()" style="display:none;">次へ →</button>
+
+                    <div class="input-group" id="qa-inputs">
+                        <input type="text" id="new-q-text" placeholder="問題文を入力">
+                        <input type="text" id="new-a-text" placeholder="答えを入力">
+                        <button class="btn btn-primary" onclick="addQuestion()">追加</button>
                     </div>
+
+                    <div class="input-group" id="choice-inputs" style="display: none;">
+                        <input type="text" id="new-c-q" placeholder="問題文を入力" style="width: 100%;">
+                        <input type="text" id="new-c-a" placeholder="⭕️ 正解">
+                        <input type="text" id="new-c-w1" placeholder="❌ 間違い1">
+                        <input type="text" id="new-c-w2" placeholder="❌ 間違い2">
+                        <button class="btn btn-primary" onclick="addQuestion()">追加</button>
+                    </div>
+
+                    <div class="settings-list" id="settings-list"></div>
+                    <button class="btn btn-danger" onclick="deleteCurrentTest()" style="margin-top: 10px;">選択中のテストをまるごと削除</button>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- 管理者ログインモーダル -->
-    <div id="admin-modal" class="modal">
-        <div class="modal-content">
-            <h2>管理者ログイン</h2>
-            <div class="form-group">
-                <label>パスワード</label>
-                <input type="password" id="admin-pass" placeholder="管理者パスワード">
-            </div>
-            <button class="btn btn-primary" onclick="checkAdminPassword()">ログイン</button>
-            <button class="btn btn-outline" onclick="closeAdminModal()">キャンセル</button>
+    <div class="version-text">Ver 4.5</div>
+
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal">
+            <h3>管理者パスワード</h3>
+            <p style="color:#6B7280; font-size:0.9rem; margin-top:5px;">パスワードを入力してください</p>
+            <input type="password" id="admin-pass" placeholder="****">
+            <button class="btn btn-primary" onclick="checkPassword()">ログイン</button>
+            <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
         </div>
     </div>
 
-    <!-- 管理者設定モーダル -->
-    <div id="admin-settings-modal" class="modal">
-        <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
-            <h2>⚙️ 管理者設定</h2>
+    <button class="admin-btn" onclick="openModal()">
+        <svg viewBox="0 0 24 24">
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+        </svg>
+    </button>
+
+    <script>
+        let db = null;
+
+        // Firebaseの動的初期化
+        function initFirebase() {
+            const storedConfig = localStorage.getItem('firebase_config');
+            const badge = document.getElementById('fb-status-badge');
             
-            <div style="margin-bottom:30px; padding: 15px; background: var(--list-bg); border-radius: 8px;">
-                <h3>📢 お知らせ</h3>
-                <textarea id="notice-input" placeholder="ユーザーに表示するお知らせ" style="width:100%; padding:10px; border:1px solid var(--input-border); border-radius:8px; min-height:80px; margin-top:10px;"></textarea>
-                <button class="btn btn-secondary btn-small" onclick="updateNotice()" style="margin-top:10px;">保存</button>
-            </div>
+            if (!storedConfig) {
+                if(badge) { badge.className = 'fb-status fb-disconnected'; badge.textContent = '❌ クラウド未接続'; }
+                return;
+            }
 
-            <div style="margin-bottom:30px; padding: 15px; background: var(--list-bg); border-radius: 8px;">
-                <h3>🔑 Firebase APIキー</h3>
-                <p style="font-size:0.9rem; color:#6B7280; margin-bottom:10px;">Firebaseの有効なAPIキーを入力します。</p>
-                <input type="text" id="firebase-api-key" placeholder="AIzaSy..." style="width:100%; padding:10px; border:1px solid var(--input-border); border-radius:8px; margin-bottom:10px;">
-                <button class="btn btn-secondary btn-small" onclick="updateFirebaseApiKey()">APIキーを反映</button>
-                <p id="firebase-config-status" style="font-size:0.85rem; color:#6B7280; margin-top:10px;"></p>
-            </div>
+            try {
+                const config = JSON.parse(storedConfig);
+                if (config.apiKey && config.projectId) {
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(config);
+                    }
+                    db = firebase.firestore();
+                    if(badge) { badge.className = 'fb-status fb-connected'; badge.textContent = '🟢 クラウド接続成功'; }
+                }
+            } catch (e) {
+                console.error("Firebase初期化失敗:", e);
+                if(badge) { badge.className = 'fb-status fb-disconnected'; badge.textContent = '⚠️ 設定エラー'; }
+            }
+        }
 
-            <div style="margin-bottom:30px; padding: 15px; background: var(--list-bg); border-radius: 8px;">
-                <h3>💾 このHTMLをダウンロード</h3>
-                <p style="font-size:0.9rem; color:#6B7280; margin-bottom:10px;">修正版アプリをダウンロードできます。</p>
-                <button class="btn btn-primary btn-small" onclick="downloadHTML()">ダウンロード</button>
-            </div>
+        function saveFirebaseConfig() {
+            const config = {
+                apiKey: document.getElementById('fb-apiKey').value.trim(),
+                authDomain: document.getElementById('fb-authDomain').value.trim(),
+                projectId: document.getElementById('fb-projectId').value.trim(),
+                storageBucket: document.getElementById('fb-storageBucket').value.trim(),
+                messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
+                appId: document.getElementById('fb-appId').value.trim()
+            };
 
-            <button class="btn btn-outline" onclick="closeAdminSettings()">閉じる</button>
-        </div>
-    </div>
+            if (!config.apiKey || !config.projectId) {
+                return alert("apiKey と projectId は必須です。");
+            }
 
-    <div id="toast" class="toast"></div>
+            localStorage.setItem('firebase_config', JSON.stringify(config));
+            alert("Firebaseの設定を保存しました！再読み込みして適用します。");
+            location.reload();
+        }
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        function loadSavedFirebaseInputs() {
+            const stored = localStorage.getItem('firebase_config');
+            if (stored) {
+                const config = JSON.parse(stored);
+                document.getElementById('fb-apiKey').value = config.apiKey || '';
+                document.getElementById('fb-authDomain').value = config.authDomain || '';
+                document.getElementById('fb-projectId').value = config.projectId || '';
+                document.getElementById('fb-storageBucket').value = config.storageBucket || '';
+                document.getElementById('fb-messagingSenderId').value = config.messagingSenderId || '';
+                document.getElementById('fb-appId').value = config.appId || '';
+            }
+        }
 
-        // Firebase設定
-        let firebaseConfig = {
-            apiKey: "AIzaSyDUV5xbCsL9y3zr8QqBVq1ZtLJUnG0LlA",
-            authDomain: "taisakuapp.firebaseapp.com",
-            projectId: "taisakuapp",
-            storageBucket: "taisakuapp.firebasestorage.app",
-            messagingSenderId: "192860088056",
-            appId: "1:192860088056:web:54f15d2b299bcd29d6e41"
+        const defaultQuestions = [
+            { q: "九州南部に広がる、火山灰が降り積もってできた台地を何というか。", a: "シラス台地" },
+            { q: "九州地方の南西に連なる島々を総称して何というか。", a: "南西諸島" }
+        ];
+
+        let appData = {
+            theme: "light",
+            notice: "明日は定期考査です！\n左のメニューからテストを選んで、最後の総復習をしましょう。",
+            tests: [
+                { id: "test_1", type: "qa", title: "地理 第一章 (一問一答)", questions: [...defaultQuestions] }
+            ],
+            solvedQuestions: 0
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        const savedData = localStorage.getItem('chiriTestData');
+        if (savedData) appData = JSON.parse(savedData);
+        if (!appData.solvedQuestions) appData.solvedQuestions = 0;
 
-        let currentUser = null;
-        let isGuestMode = false;
-        let currentTest = null;
+        if(appData.theme === "dark") document.documentElement.setAttribute('data-theme', 'dark');
+
+        function saveData() {
+            localStorage.setItem('chiriTestData', JSON.stringify(appData));
+            updateSidebar();
+        }
+
+        function setTheme(themeMode) {
+            appData.theme = themeMode;
+            if(themeMode === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.removeAttribute('data-theme');
+            saveData();
+        }
+
+        let currentTestId = null;
+        let testPlayQuestions = [];
         let currentQIndex = 0;
-        let userStats = { total: 0, correct: 0 };
-        let allTests = [];
+        let isAnswerShown = false;
+        let currentChoices = [];
+        let currentQuestionScored = false;
 
-        // スキップ（ゲストモード）
-        window.skipLogin = () => {
-            isGuestMode = true;
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('main-screen').style.display = 'flex';
-            document.getElementById('sidebar-user').textContent = '👤 ゲスト';
-            loadDemoData();
-            renderHome();
-        };
-
-        function loadDemoData() {
-            // デモ用テストをローカルに作成
-            allTests = [
-                {
-                    id: 'demo-1',
-                    title: '英単語100選',
-                    type: 'qa',
-                    creatorId: 'demo',
-                    creatorName: 'デモ',
-                    public: true,
-                    questions: [
-                        { q: 'apple の意味は？', a: 'りんご' },
-                        { q: 'book の意味は？', a: '本' },
-                        { q: 'cat の意味は？', a: '猫' }
-                    ]
-                },
-                {
-                    id: 'demo-2',
-                    title: '世界の首都',
-                    type: '3choice',
-                    creatorId: 'demo',
-                    creatorName: 'デモ',
-                    public: true,
-                    questions: [
-                        { q: '日本の首都は？', a: '東京', w1: '京都', w2: '大阪' },
-                        { q: 'フランスの首都は？', a: 'パリ', w1: 'ロンドン', w2: 'ベルリン' },
-                        { q: 'アメリカの首都は？', a: 'ワシントンD.C.', w1: 'ニューヨーク', w2: 'ロサンゼルス' }
-                    ]
-                }
-            ];
-            userStats = { total: 5, correct: 3 };
+        function showToast(msg, isRankUp = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = isRankUp ? 'toast rank-up show' : 'toast show';
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
-        // 管理者関数
-        window.openAdminModal = () => {
-            document.getElementById('admin-modal').classList.add('show');
-        };
-        window.closeAdminModal = () => document.getElementById('admin-modal').classList.remove('show');
-        window.closeAdminSettings = () => document.getElementById('admin-settings-modal').classList.remove('show');
-
-        window.checkAdminPassword = () => {
-            const pass = document.getElementById('admin-pass').value;
-            if (pass === '1102') {
-                closeAdminModal();
-                showAdminSettings();
-            } else if (pass === '') {
-                alert('パスワードを入力してください');
-            } else {
-                alert('パスワードが正しくありません');
+        function addSolvedCount() {
+            if (currentQuestionScored) return;
+            
+            let oldPoints = Math.floor(appData.solvedQuestions / 10);
+            let oldRank = Math.floor(oldPoints / 10) + 1;
+            
+            appData.solvedQuestions++;
+            
+            let newPoints = Math.floor(appData.solvedQuestions / 10);
+            let newRank = Math.floor(newPoints / 10) + 1;
+            
+            if (newRank > oldRank) {
+                showToast(`🎉 ランク ${newRank} にアップしました！`, true);
+            } else if (newPoints > oldPoints) {
+                showToast(`🪙 1ポイント獲得！ (合計: ${newPoints}pt)`);
             }
-        };
-
-        function showAdminSettings() {
-            document.getElementById('notice-input').value = localStorage.getItem('app-notice') || '';
-            document.getElementById('firebase-api-key').value = localStorage.getItem('firebase-api-key') || '';
-            document.getElementById('admin-settings-modal').classList.add('show');
+            
+            saveData();
+            currentQuestionScored = true;
         }
 
-        window.updateNotice = () => {
-            const notice = document.getElementById('notice-input').value;
-            localStorage.setItem('app-notice', notice);
-            document.getElementById('notice-text').textContent = notice || 'お知らせはありません';
-            showToast('お知らせを更新しました！');
-        };
-
-        window.updateFirebaseApiKey = () => {
-            const apiKey = document.getElementById('firebase-api-key').value;
-            if (!apiKey) {
-                alert('APIキーを入力してください');
-                return;
-            }
-            localStorage.setItem('firebase-api-key', apiKey);
-            document.getElementById('firebase-config-status').textContent = '✅ APIキーを反映しました。';
-            showToast('Firebase APIキーを反映しました！');
-        };
-
-        window.downloadHTML = () => {
-            const element = document.documentElement.outerHTML;
-            const blob = new Blob([element], { type: 'text/html;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'taisakuapp.html';
-            link.click();
-            showToast('ダウンロードしました！');
-        };
-
-        // 認証処理
-        window.handleLogin = async (e) => {
-            e.preventDefault();
-            showLoading();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-pass').value;
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                showToast('ログインしました！');
-            } catch (error) {
-                showToast('ログインに失敗: ' + error.message, true);
-            }
-            hideLoading();
-        };
-
-        window.handleGoogleLogin = async () => {
-            showLoading();
-            try {
-                const provider = new GoogleAuthProvider();
-                const result = await signInWithPopup(auth, provider);
-                showToast('Googleでログインしました！');
-            } catch (error) {
-                if (error.code === 'auth/popup-blocked') {
-                    showToast('ポップアップがブロックされています。ブラウザの設定を確認してください。', true);
-                } else if (error.code !== 'auth/cancelled-popup-request') {
-                    showToast('Googleログインに失敗しました', true);
-                }
-            }
-            hideLoading();
-        };
-
-        window.handleSignup = async (e) => {
-            e.preventDefault();
-            showLoading();
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-pass').value;
-            try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                await setDoc(doc(db, 'users', auth.currentUser.uid), {
-                    email: email,
-                    createdAt: new Date(),
-                    stats: { total: 0, correct: 0 }
-                });
-                showToast('アカウントを作成しました！');
-                showAuthForm('login');
-            } catch (error) {
-                showToast('エラー: ' + error.message, true);
-            }
-            hideLoading();
-        };
-
-        window.handleLogout = async () => {
-            showLoading();
-            if (isGuestMode) {
-                isGuestMode = false;
-                currentUser = null;
-            } else {
-                await signOut(auth);
-            }
-            document.getElementById('auth-screen').style.display = 'block';
-            document.getElementById('main-screen').style.display = 'none';
-            showAuthForm('login');
-            showToast('ログアウトしました');
-            hideLoading();
-        };
-
-        // データ読み込み
-        async function loadUserData() {
-            try {
-                const userRef = doc(db, 'users', currentUser.uid);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                    userStats = userSnap.data().stats || { total: 0, correct: 0 };
-                } else {
-                    await setDoc(userRef, { email: currentUser.email, createdAt: new Date(), stats: { total: 0, correct: 0 } });
-                }
-                await loadAllTests();
-            } catch (error) {
-                showToast('データ読み込みエラー: ' + error.message, true);
-            }
-        }
-
-        async function loadAllTests() {
-            try {
-                const q = query(collection(db, 'tests'), where('public', '==', true), orderBy('createdAt', 'desc'));
-                const snapshot = await getDocs(q);
-                allTests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                const myQ = query(collection(db, 'tests'), where('creatorId', '==', currentUser.uid));
-                const mySnapshot = await getDocs(myQ);
-                mySnapshot.docs.forEach(doc => {
-                    const test = { id: doc.id, ...doc.data() };
-                    if (!allTests.find(t => t.id === test.id)) allTests.push(test);
-                });
-                
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            if(screenId === 'home-screen') {
+                document.getElementById('nav-home').classList.add('active');
+                renderHome();
+            } else if (screenId === 'settings-screen') {
                 renderSettings();
-            } catch (error) {
-                showToast('テスト読み込みエラー: ' + error.message, true);
+            } else if (currentTestId) {
+                const activeNav = document.getElementById('nav-' + currentTestId);
+                if(activeNav) activeNav.classList.add('active');
             }
         }
 
-        // 画面表示
-        window.renderHome = () => {
-            const notice = localStorage.getItem('app-notice') || 'Firebaseと連携しました！';
-            document.getElementById('notice-text').textContent = notice;
-
-            document.getElementById('stat-total').textContent = userStats.total;
-            document.getElementById('stat-correct').textContent = userStats.correct;
-            const rate = userStats.total > 0 ? Math.round((userStats.correct / userStats.total) * 100) : 0;
-            document.getElementById('stat-rate').textContent = rate + '%';
-            document.getElementById('stat-tests').textContent = allTests.length;
-
-            const recent = allTests.slice(0, 5);
-            const html = recent.map(t => `
-                <div class="test-item" onclick="startQuiz('${t.id}')">
-                    <div class="test-title">${t.type === '3choice' ? '🎲' : '📝'} ${t.title}</div>
-                    <div class="test-meta">${t.questions?.length || 0}問</div>
-                </div>
-            `).join('');
-            document.getElementById('recent-tests').innerHTML = html || '<p style="text-align:center;color:#999;">テストがありません</p>';
-        };
-
-        window.renderSettings = () => {
-            const userTests = allTests.filter(t => t.creatorId === currentUser.uid);
-            const select = document.getElementById('admin-test-select');
-            select.innerHTML = '<option>テストを選択...</option>';
-            userTests.forEach(test => {
-                const opt = document.createElement('option');
-                opt.value = test.id;
-                opt.textContent = test.title;
-                select.appendChild(opt);
-            });
-        };
-
-        window.renderSettingsQuestions = () => {
-            const testId = document.getElementById('admin-test-select').value;
-            const test = allTests.find(t => t.id === testId);
-            if(!test) return;
-
-            document.getElementById('qa-inputs').style.display = (test.type === "qa") ? 'block' : 'none';
-            document.getElementById('choice-inputs').style.display = (test.type === "3choice") ? 'block' : 'none';
-        };
-
-        window.createNewTest = async () => {
-            if (isGuestMode) {
-                showToast('ゲストモードではテストを作成できません。ログインしてください', true);
-                return;
-            }
+        function renderHome() {
+            document.getElementById('notice-text').textContent = appData.notice || "お知らせはありません。";
             
-            const title = document.getElementById('new-test-title').value.trim();
-            const type = document.getElementById('new-test-type').value;
-            const isPublic = document.getElementById('new-test-public').checked;
-            
-            if(!title) return showToast('タイトルを入力してください', true);
-            
-            showLoading();
-            try {
-                const testRef = doc(collection(db, 'tests'));
-                await setDoc(testRef, {
-                    title, type, creatorId: currentUser.uid, creatorName: currentUser.email.split('@')[0],
-                    public: isPublic, questions: [], createdAt: new Date()
-                });
-                document.getElementById('new-test-title').value = '';
-                await loadAllTests();
-                showToast(`「${title}」を作成しました！`);
-            } catch (error) {
-                showToast('エラー: ' + error.message, true);
-            }
-            hideLoading();
-        };
+            let points = Math.floor(appData.solvedQuestions / 10);
+            let rank = Math.floor(points / 10) + 1;
+            let nextPointReq = 10 - (appData.solvedQuestions % 10);
+            let nextRankReq = 10 - (points % 10);
 
-        window.addQuestion = async () => {
-            const testId = document.getElementById('admin-test-select').value;
-            const test = allTests.find(t => t.id === testId);
-            if(!test) return showToast('テストを選択してください', true);
+            document.getElementById('stat-rank').textContent = rank;
+            document.getElementById('stat-next-rank').textContent = `次まであと ${nextRankReq}pt`;
+            document.getElementById('stat-points').textContent = points;
+            document.getElementById('stat-next-point').textContent = `次まであと ${nextPointReq}問`;
 
-            showLoading();
-            try {
-                if (test.type === "qa") {
-                    const q = document.getElementById('new-q-text').value.trim();
-                    const a = document.getElementById('new-a-text').value.trim();
-                    if(!q || !a) return showToast('入力してください', true);
-                    test.questions.push({ q, a });
-                    document.getElementById('new-q-text').value = '';
-                    document.getElementById('new-a-text').value = '';
-                } else {
-                    const q = document.getElementById('new-c-q').value.trim();
-                    const a = document.getElementById('new-c-a').value.trim();
-                    const w1 = document.getElementById('new-c-w1').value.trim();
-                    const w2 = document.getElementById('new-c-w2').value.trim();
-                    if(!q || !a || !w1 || !w2) return showToast('全て入力してください', true);
-                    test.questions.push({ q, a, w1, w2 });
-                    document.getElementById('new-c-q').value = '';
-                    document.getElementById('new-c-a').value = '';
-                    document.getElementById('new-c-w1').value = '';
-                    document.getElementById('new-c-w2').value = '';
-                }
+            document.getElementById('stat-test-count').textContent = appData.tests.length;
+            const totalQ = appData.tests.reduce((sum, test) => sum + test.questions.length, 0);
+            document.getElementById('stat-q-count').textContent = totalQ;
+
+            const allQuestions = [];
+            appData.tests.forEach(t => { t.questions.forEach(q => allQuestions.push(q)); });
+
+            const randomBox = document.getElementById('random-q-container');
+            if (allQuestions.length > 0) {
+                randomBox.style.display = 'block';
+                const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+                document.getElementById('random-q-text').textContent = "Q. " + randomQ.q;
                 
-                await updateDoc(doc(db, 'tests', testId), { questions: test.questions });
-                showToast('問題を追加しました！');
-            } catch (error) {
-                showToast('エラー: ' + error.message, true);
+                const ansText = document.getElementById('random-a-text');
+                ansText.textContent = "A. " + randomQ.a;
+                ansText.style.display = 'none';
+                
+                const btn = document.getElementById('random-a-btn');
+                btn.style.display = 'inline-block';
+            } else {
+                randomBox.style.display = 'none';
             }
-            hideLoading();
-        };
+        }
 
-        window.deleteQuestion = async (testId, qIndex) => {
-            if (!confirm('削除しますか？')) return;
-            showLoading();
-            try {
-                const test = allTests.find(t => t.id === testId);
-                test.questions.splice(qIndex, 1);
-                await updateDoc(doc(db, 'tests', testId), { questions: test.questions });
-                showToast('問題を削除しました');
-            } catch (error) {
-                showToast('エラー: ' + error.message, true);
-            }
-            hideLoading();
-        };
+        function showRandomAnswer() {
+            document.getElementById('random-a-btn').style.display = 'none';
+            document.getElementById('random-a-text').style.display = 'block';
+        }
 
-        // クイズ実行
-        window.startQuiz = (testId) => {
-            currentTest = allTests.find(t => t.id === testId);
-            if(!currentTest || !currentTest.questions?.length) {
-                showToast('テストが見つかりません', true);
-                return;
+        function updateSidebar() {
+            const navList = document.getElementById('nav-list');
+            navList.innerHTML = `<li class="nav-item active" id="nav-home" onclick="goHome()">🏠 ホーム</li>`;
+            
+            appData.tests.forEach(test => {
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                li.id = 'nav-' + test.id;
+                const typeIcon = (test.type === "3choice") ? "🎲" : "📝";
+                li.textContent = `${typeIcon} ${test.title}`;
+                li.onclick = () => selectTest(test.id);
+                navList.appendChild(li);
+            });
+        }
+
+        function goHome() {
+            currentTestId = null;
+            showScreen('home-screen');
+        }
+
+        function selectTest(testId) {
+            currentTestId = testId;
+            const test = appData.tests.find(t => t.id === testId);
+            if(test) {
+                document.getElementById('intro-title').textContent = test.title;
+                const qCount = test.questions.length;
+                document.getElementById('intro-count').textContent = qCount;
+                document.getElementById('intro-type').textContent = (test.type === "3choice") ? "形式: ３択問題" : "形式: 一問一答";
+                
+                const totalSeconds = qCount * 8;
+                const mins = Math.floor(totalSeconds / 60);
+                const secs = totalSeconds % 60;
+                let timeStr = "";
+                if (mins > 0) timeStr += `${mins}分`;
+                if (secs > 0 || mins === 0) timeStr += `${secs}秒`;
+                
+                document.getElementById('intro-time').textContent = `⏳ 目安時間: 約 ${timeStr}`;
+                
+                showScreen('test-intro-screen');
             }
+        }
+
+        function startTest() {
+            const test = appData.tests.find(t => t.id === currentTestId);
+            if (!test || test.questions.length === 0) {
+                alert("このテストには問題が登録されていません。"); return;
+            }
+            testPlayQuestions = [...test.questions];
             currentQIndex = 0;
-            showScreen('quiz-screen');
+            showScreen('test-screen');
             loadQuestion();
-        };
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
 
         function loadQuestion() {
-            if (currentQIndex >= currentTest.questions.length) {
-                finishQuiz();
-                return;
-            }
-            
-            const q = currentTest.questions[currentQIndex];
-            document.getElementById('quiz-title').textContent = currentTest.title;
-            document.getElementById('quiz-progress').textContent = `${currentQIndex + 1} / ${currentTest.questions.length}`;
-            document.getElementById('quiz-question').textContent = q.q;
-            document.getElementById('quiz-result').className = 'result-mark';
-            document.getElementById('next-btn').style.display = 'none';
+            const test = appData.tests.find(t => t.id === currentTestId);
+            const is3Choice = (test.type === "3choice");
+            const qData = testPlayQuestions[currentQIndex];
 
-            const content = document.getElementById('quiz-content');
-            if (currentTest.type === 'qa') {
-                content.innerHTML = `<button class="btn btn-outline" onclick="toggleAnswer()">答えを見る</button>
-                    <div id="answer-box" class="answer-box">${q.a}</div>
-                    <button class="btn btn-secondary" onclick="markCorrect()">⭕️ 正解</button>
-                    <button class="btn btn-danger" onclick="markWrong()">❌ 間違い</button>`;
+            currentQuestionScored = false;
+
+            const mark = document.getElementById('result-mark');
+            mark.className = 'result-mark';
+            mark.textContent = '';
+
+            document.getElementById('progress').textContent = `Q. ${currentQIndex + 1} / ${testPlayQuestions.length}`;
+            document.getElementById('question-text').textContent = qData.q;
+
+            if (is3Choice) {
+                document.getElementById('qa-ui').style.display = 'none';
+                document.getElementById('choice-ui').style.display = 'flex';
+                document.getElementById('next-choice-btn').style.visibility = 'hidden';
+
+                currentChoices = [
+                    { text: qData.a, isCorrect: true },
+                    { text: qData.w1, isCorrect: false },
+                    { text: qData.w2, isCorrect: false }
+                ];
+                shuffleArray(currentChoices);
+
+                const btns = document.querySelectorAll('.choice-btn');
+                btns.forEach((btn, index) => {
+                    btn.textContent = currentChoices[index].text;
+                    btn.disabled = false;
+                    btn.className = 'btn btn-outline choice-btn';
+                });
             } else {
-                const choices = [q.a, q.w1, q.w2].sort(() => Math.random() - 0.5);
-                content.innerHTML = choices.map((c, i) => 
-                    `<button class="btn btn-outline choice-btn" onclick="answerChoice('${c}')">${c}</button>`
-                ).join('');
+                document.getElementById('choice-ui').style.display = 'none';
+                document.getElementById('qa-ui').style.display = 'block';
+                isAnswerShown = false;
+                document.getElementById('answer-text').textContent = qData.a;
+                document.getElementById('answer-text').classList.remove('show');
+                
+                const actionBtn = document.getElementById('action-btn');
+                actionBtn.textContent = '答えを見る';
+                actionBtn.className = 'btn btn-primary';
             }
         }
 
-        window.toggleAnswer = () => {
-            document.getElementById('answer-box').classList.toggle('show');
-        };
+        function handleAction() {
+            if (!isAnswerShown) {
+                document.getElementById('answer-text').classList.add('show');
+                const actionBtn = document.getElementById('action-btn');
+                actionBtn.textContent = '次の問題へ';
+                actionBtn.className = 'btn btn-secondary';
+                isAnswerShown = true;
+                addSolvedCount();
+            } else {
+                goNext();
+            }
+        }
 
-        window.answerChoice = async (answer) => {
-            const q = currentTest.questions[currentQIndex];
-            const isCorrect = answer === q.a;
-            
-            const mark = document.getElementById('quiz-result');
-            if (isCorrect) {
-                mark.textContent = '✅';
+        function checkChoice(index) {
+            const btns = document.querySelectorAll('.choice-btn');
+            btns.forEach(b => b.disabled = true);
+
+            const mark = document.getElementById('result-mark');
+
+            if (currentChoices[index].isCorrect) {
+                mark.textContent = '⭕️';
                 mark.classList.add('show-correct');
-                userStats.correct++;
+                btns[index].classList.remove('btn-outline');
+                btns[index].classList.add('btn-primary');
             } else {
                 mark.textContent = '❌';
                 mark.classList.add('show-wrong');
+                btns[index].classList.remove('btn-outline');
+                btns[index].classList.add('btn-danger');
+                
+                const correctIdx = currentChoices.findIndex(c => c.isCorrect);
+                btns[correctIdx].classList.remove('btn-outline');
+                btns[correctIdx].classList.add('btn-primary');
             }
             
-            userStats.total++;
-            await saveUserStats();
-            
-            document.getElementById('quiz-content').innerHTML = '';
-            document.getElementById('next-btn').style.display = 'block';
-        };
+            document.getElementById('next-choice-btn').style.visibility = 'visible';
+            addSolvedCount();
+        }
 
-        window.markCorrect = async () => {
-            userStats.correct++;
-            userStats.total++;
-            await saveUserStats();
-            const mark = document.getElementById('quiz-result');
-            mark.textContent = '✅';
-            mark.classList.add('show-correct');
-            document.getElementById('next-btn').style.display = 'block';
-        };
+        function nextChoiceQuestion() { goNext(); }
 
-        window.markWrong = async () => {
-            userStats.total++;
-            await saveUserStats();
-            const mark = document.getElementById('quiz-result');
-            mark.textContent = '❌';
-            mark.classList.add('show-wrong');
-            document.getElementById('next-btn').style.display = 'block';
-        };
-
-        window.nextQuestion = () => {
+        function goNext() {
             currentQIndex++;
-            loadQuestion();
-        };
-
-        window.exitQuiz = () => {
-            showScreen('home-screen');
-            renderHome();
-        };
-
-        function finishQuiz() {
-            showScreen('home-screen');
-            renderHome();
-            showToast('クイズ完了！🎉');
+            if (currentQIndex < testPlayQuestions.length) loadQuestion();
+            else showScreen('result-screen');
         }
 
-        async function saveUserStats() {
-            try {
-                await updateDoc(doc(db, 'users', currentUser.uid), { stats: userStats });
-            } catch (error) {
-                console.error('統計保存エラー:', error);
+        function openModal() { document.getElementById('admin-pass').value = ''; document.getElementById('auth-modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
+        function checkPassword() {
+            if (document.getElementById('admin-pass').value === '1102') {
+                closeModal(); showScreen('settings-screen');
+            } else { alert('パスワードが違います。'); }
+        }
+
+        function updateNotice() { 
+            appData.notice = document.getElementById('notice-input').value; 
+            saveData(); 
+            if (db) {
+                db.collection("settings").doc("notice").set({ notice: appData.notice }).catch(e=>console.error(e));
             }
+            alert('お知らせを更新しました！'); 
         }
 
-        // UI関数
-        window.showScreen = (screenId) => {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            if(screenId === 'home-screen') document.querySelector('[data-screen="home-screen"]').classList.add('active');
-            if(screenId === 'tests-screen') { document.querySelector('[data-screen="tests-screen"]').classList.add('active'); renderTests(); }
-            if(screenId === 'settings-screen') document.querySelector('[data-screen="settings-screen"]').classList.add('active');
-        };
-
-        window.renderTests = () => {
-            const filtered = allTests.filter(t => t.public);
-            const html = filtered.map(t => `
-                <div class="test-item" onclick="startQuiz('${t.id}')">
-                    <div class="test-title">${t.type === '3choice' ? '🎲' : '📝'} ${t.title}</div>
-                    <div class="test-meta">${t.questions?.length || 0}問</div>
-                </div>
-            `).join('');
-            document.getElementById('public-tests').innerHTML = html || '<p style="text-align:center;">テストがありません</p>';
-        };
-
-        window.showAuthForm = (form) => {
-            document.getElementById('auth-login').style.display = form === 'login' ? 'block' : 'none';
-            document.getElementById('auth-signup').style.display = form === 'signup' ? 'block' : 'none';
-        };
-
-        window.toggleTheme = () => {
-            const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-        };
-
-        function showToast(msg, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.className = isError ? 'toast error show' : 'toast show';
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        function showLoading() { document.getElementById('loading').classList.add('show'); }
-        function hideLoading() { document.getElementById('loading').classList.remove('show'); }
-
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const screenId = this.dataset.screen;
-                if(screenId) showScreen(screenId);
+        function renderSettings() {
+            loadSavedFirebaseInputs();
+            document.getElementById('notice-input').value = appData.notice || '';
+            const select = document.getElementById('admin-test-select');
+            const aiSelect = document.getElementById('ai-test-select');
+            select.innerHTML = ''; aiSelect.innerHTML = '';
+            
+            appData.tests.forEach(test => {
+                const mark = (test.type === "3choice") ? "🎲" : "📝";
+                const opt = document.createElement('option'); opt.value = test.id; opt.textContent = `${mark} ${test.title}`;
+                select.appendChild(opt);
+                const opt2 = document.createElement('option'); opt2.value = test.id; opt2.textContent = `${mark} ${test.title}`;
+                aiSelect.appendChild(opt2);
             });
-        });
+            renderSettingsQuestions();
+        }
 
-        // テーマ復元
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
+        function renderSettingsQuestions() {
+            const list = document.getElementById('settings-list');
+            list.innerHTML = '';
+            const targetId = document.getElementById('admin-test-select').value;
+            const test = appData.tests.find(t => t.id === targetId);
+            if(!test) return;
 
-        // 認証状態の監視
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('main-screen').style.display = 'flex';
-                document.getElementById('sidebar-user').textContent = `👤 ${user.email.split('@')[0]}`;
-                await loadUserData();
-                renderHome();
-            } else {
-                currentUser = null;
-                document.getElementById('auth-screen').style.display = 'block';
-                document.getElementById('main-screen').style.display = 'none';
+            const type = test.type || "qa";
+            document.getElementById('qa-inputs').style.display = (type === "qa") ? 'flex' : 'none';
+            document.getElementById('choice-inputs').style.display = (type === "3choice") ? 'flex' : 'none';
+            
+            test.questions.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'settings-item';
+                if (type === "qa") {
+                    div.innerHTML = `<div class="settings-item-text"><strong>Q${index+1}:</strong> ${item.q}<br><span style="color:var(--danger)">A: ${item.a}</span></div><button class="delete-btn" onclick="deleteQuestion('${test.id}', ${index})">削除</button>`;
+                } else {
+                    div.innerHTML = `<div class="settings-item-text"><strong>Q${index+1}:</strong> ${item.q}<br><span style="color:var(--primary)">⭕️ ${item.a}</span><br><span style="color:#6B7280; font-size:0.85rem;">❌ ${item.w1} / ${item.w2}</span></div><button class="delete-btn" onclick="deleteQuestion('${test.id}', ${index})">削除</button>`;
+                }
+                list.appendChild(div);
+            });
+        }
+
+        async function publishTestToFirebase() {
+            const targetId = document.getElementById('admin-test-select').value;
+            const test = appData.tests.find(t => t.id === targetId);
+            if (!test) return alert("テストが選択されていません。");
+
+            if (!db) {
+                return alert("Firebaseの設定がされていません。上部の「Firebase接続設定」に入力して保存してください。");
             }
-            hideLoading();
-        });
+
+            try {
+                await db.collection("tests").doc(test.id).set(test);
+                alert(`テスト「${test.title}」をクラウド(Firebase)に公開・保存しました！`);
+            } catch (error) {
+                console.error("Firebase公開エラー:", error);
+                alert("公開に失敗しました: " + error.message);
+            }
+        }
+
+        async function fetchTestsFromFirebase() {
+            if (!db) {
+                return alert("Firebaseの設定がされていません。上部の「Firebase接続設定」に入力して保存してください。");
+            }
+
+            try {
+                const snapshot = await db.collection("tests").get();
+                if (snapshot.empty) {
+                    return alert("クラウド上に公開されたテストがありません。");
+                }
+
+                const cloudTests = [];
+                snapshot.forEach(doc => {
+                    cloudTests.push(doc.data());
+                });
+
+                appData.tests = cloudTests;
+                
+                const noticeDoc = await db.collection("settings").doc("notice").get();
+                if (noticeDoc.exists && noticeDoc.data().notice) {
+                    appData.notice = noticeDoc.data().notice;
+                }
+
+                saveData();
+                renderSettings();
+                renderHome();
+                alert("クラウド(Firebase)から最新のデータを取得・同期しました！");
+            } catch (error) {
+                console.error("Firebase取得エラー:", error);
+                alert("データ取得に失敗しました: " + error.message);
+            }
+        }
+
+        function createNewTest() {
+            const title = document.getElementById('new-test-title').value.trim();
+            if(title === '') return alert('タイトルを入力してください。');
+            appData.tests.push({ id: 'test_' + Date.now(), type: document.getElementById('new-test-type').value, title: title, questions: [] });
+            document.getElementById('new-test-title').value = '';
+            saveData(); renderSettings(); alert(`「${title}」を作成しました！`);
+        }
+
+        function addQuestion() {
+            const test = appData.tests.find(t => t.id === document.getElementById('admin-test-select').value);
+            if (test.type === "qa") {
+                const q = document.getElementById('new-q-text').value.trim(), a = document.getElementById('new-a-text').value.trim();
+                if(q==='' || a==='') return alert('入力してください。');
+                test.questions.push({ q, a });
+                document.getElementById('new-q-text').value = ''; document.getElementById('new-a-text').value = '';
+            } else {
+                const q = document.getElementById('new-c-q').value.trim(), a = document.getElementById('new-c-a').value.trim(), w1 = document.getElementById('new-c-w1').value.trim(), w2 = document.getElementById('new-c-w2').value.trim();
+                if(q===''||a===''||w1===''||w2==='') return alert('全て入力してください。');
+                test.questions.push({ q, a, w1, w2 });
+                document.getElementById('new-c-q').value=''; document.getElementById('new-c-a').value=''; document.getElementById('new-c-w1').value=''; document.getElementById('new-c-w2').value='';
+            }
+            saveData(); renderSettingsQuestions();
+        }
+
+        function importFromAI() {
+            const text = document.getElementById('ai-import-text').value.trim();
+            if(!text) return;
+            const test = appData.tests.find(t => t.id === document.getElementById('ai-test-select').value);
+            let added = 0;
+            text.split('\n').forEach(line => {
+                let parts = line.split(/[\t,，、]/);
+                if (test.type === "qa" && parts.length >= 2) {
+                    test.questions.push({ q: parts[0].trim(), a: parts[1].trim() }); added++;
+                } else if (test.type === "3choice" && parts.length >= 4) {
+                    test.questions.push({ q: parts[0].trim(), a: parts[1].trim(), w1: parts[2].trim(), w2: parts[3].trim() }); added++;
+                }
+            });
+            if(added > 0) { document.getElementById('ai-import-text').value = ''; saveData(); renderSettings(); alert(`${added}問追加しました！`); }
+            else alert('形式が正しくありません。');
+        }
+
+        function deleteQuestion(testId, qIndex) {
+            if (confirm('削除しますか？')) {
+                appData.tests.find(t => t.id === testId).questions.splice(qIndex, 1);
+                saveData(); renderSettingsQuestions();
+            }
+        }
+
+        function deleteCurrentTest() {
+            const id = document.getElementById('admin-test-select').value;
+            if (confirm('テストをまるごと削除しますか？')) {
+                appData.tests = appData.tests.filter(t => t.id !== id);
+                saveData(); renderSettings(); if(currentTestId === id) goHome();
+            }
+        }
+
+        document.getElementById('admin-pass').addEventListener('keypress', e => { if(e.key === 'Enter') checkPassword(); });
+
+        initFirebase();
+        updateSidebar();
+        renderHome();
+
+        if (db) {
+            fetchTestsFromFirebase().catch(() => {});
+        }
     </script>
 </body>
 </html>
