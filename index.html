@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>対策アプリ (RTDB版)</title>
+    <title>対策アプリ (RTDB & Auth版)</title>
 
     <!-- Firebase SDK (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <style>
         :root {
@@ -74,6 +75,15 @@
 
         .sidebar { width: 260px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; transition: all 0.3s ease; z-index: 10; }
         .sidebar-header { padding: 20px; font-size: 1.2rem; font-weight: bold; background-color: rgba(0,0,0,0.2); text-align: center; }
+        
+        .user-panel {
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        .user-name { font-size: 0.9rem; font-weight: bold; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
         .nav-list { list-style: none; padding: 10px 0; overflow-y: auto; flex-grow: 1; }
         .nav-item { padding: 15px 20px; cursor: pointer; transition: all 0.2s ease; border-left: 4px solid transparent; }
         .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); border-left-color: var(--primary); }
@@ -104,12 +114,14 @@
         .random-q-box h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: 15px; }
         .random-q-text { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; line-height: 1.5; }
 
-        .btn { background: var(--primary); color: white; border: none; padding: 15px 20px; border-radius: 10px; font-size: 1rem; cursor: pointer; transition: all 0.2s ease; text-align: center; width: 100%; margin-bottom: 15px; font-weight: bold; }
+        .btn { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-size: 1rem; cursor: pointer; transition: all 0.2s ease; text-align: center; width: 100%; margin-bottom: 10px; font-weight: bold; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .btn-primary { background: var(--primary); }
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-secondary { background: var(--secondary); }
         .btn-secondary:hover { background: var(--secondary-hover); }
+        .btn-google { background: #4285F4; color: white; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-google:hover { background: #357ae8; }
         .btn-danger { background: var(--danger); }
         .btn-danger:hover { background: var(--danger-hover); }
         .btn-outline { background: transparent; color: var(--text); border: 2px solid var(--input-border); }
@@ -152,17 +164,23 @@
         .version-text { position: fixed; bottom: 8px; right: 15px; font-size: 0.8rem; color: #9CA3AF; z-index: 90; pointer-events: none; font-weight: bold; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(3px); }
-        .modal { background: var(--card-bg); color: var(--text); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
-        .modal input { width: 100%; padding: 15px; margin: 20px 0; border: 2px solid var(--input-border); border-radius: 10px; font-size: 1.2rem; text-align: center; outline: none; background: var(--input-bg); color: var(--text); }
+        .modal { background: var(--card-bg); color: var(--text); padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+        .modal input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--input-border); border-radius: 8px; font-size: 1rem; outline: none; background: var(--input-bg); color: var(--text); }
 
         .fb-status { font-size: 0.85rem; font-weight: bold; padding: 6px 12px; border-radius: 20px; display: inline-block; margin-bottom: 15px; }
         .fb-connected { background: #D1FAE5; color: #065F46; }
         .fb-disconnected { background: #FEE2E2; color: #991B1B; }
 
+        .divider { display: flex; align-items: center; text-align: center; margin: 15px 0; color: #9CA3AF; font-size: 0.85rem; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--input-border); }
+        .divider::before { margin-right: .5em; }
+        .divider::after { margin-left: .5em; }
+
         @media (max-width: 768px) {
             body { flex-direction: column; }
             .sidebar { width: 100%; height: auto; flex-direction: row; align-items: center; }
             .sidebar-header { padding: 15px; }
+            .user-panel { border-bottom: none; border-right: 1px solid rgba(255,255,255,0.1); padding: 10px; }
             .nav-list { display: flex; overflow-x: auto; padding: 0; }
             .nav-item { white-space: nowrap; border-left: none; border-bottom: 4px solid transparent; }
             .main-content { padding: 20px; padding-top: 70px; }
@@ -177,6 +195,11 @@
 
     <aside class="sidebar">
         <div class="sidebar-header">対策アプリ</div>
+        <div class="user-panel">
+            <div class="user-name" id="user-display-name">未ログイン</div>
+            <button class="btn btn-primary" id="login-open-btn" onclick="openAuthModal()" style="font-size:0.8rem; padding:6px 10px; margin-bottom:0;">ログイン</button>
+            <button class="btn btn-outline" id="logout-btn" onclick="logout()" style="font-size:0.8rem; padding:6px 10px; margin-bottom:0; display:none; color:white; border-color:white;">ログアウト</button>
+        </div>
         <ul class="nav-list" id="nav-list"></ul>
     </aside>
 
@@ -278,11 +301,10 @@
             <div id="settings-screen" class="screen">
                 <h2>管理者メニュー</h2>
 
-                <!-- ⚙️ Firebase接続ステータス -->
                 <div class="admin-section" style="background: var(--list-bg); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary); text-align: center;">
-                    <h3>⚙️ クラウド（Firebase RTDB）接続状態</h3>
+                    <h3>⚙️ クラウド（Firebase RTDB & Auth）接続状態</h3>
                     <span id="fb-status-badge" class="fb-status fb-connected">🟢 クラウド自動接続中</span>
-                    <p style="font-size:0.85rem; color:#6B7280; margin-top:5px;">接続設定はプログラム内に組み込み済みです。どの端末からでも自動接続されます。</p>
+                    <p style="font-size:0.85rem; color:#6B7280; margin-top:5px;">接続設定・認証機能組み込み済み。</p>
                 </div>
 
                 <div class="admin-section">
@@ -345,8 +367,31 @@
         </div>
     </main>
 
-    <div class="version-text">Ver 5.1 (RTDB埋め込み版)</div>
+    <div class="version-text">Ver 5.2 (Auth認証実装版)</div>
 
+    <!-- 🔑 ログイン・登録用モーダル -->
+    <div class="modal-overlay" id="auth-user-modal">
+        <div class="modal">
+            <h3>ログイン / 会員登録</h3>
+            <p style="color:#6B7280; font-size:0.85rem; margin-top:5px; margin-bottom:15px;">アカウントにログインしてデータを共有</p>
+            
+            <button class="btn btn-google" onclick="loginWithGoogle()">
+                <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#fff" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#fff" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#fff" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+                Googleでログイン
+            </button>
+
+            <div class="divider">または</div>
+
+            <input type="email" id="auth-email" placeholder="メールアドレス">
+            <input type="password" id="auth-password" placeholder="パスワード（6文字以上）">
+            
+            <button class="btn btn-primary" onclick="loginWithEmail()" style="margin-top:10px;">ログイン</button>
+            <button class="btn btn-secondary" onclick="registerWithEmail()">新規アカウント登録</button>
+            <button class="btn btn-outline" onclick="closeAuthModal()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 🔒 管理者用パスワードモーダル -->
     <div class="modal-overlay" id="auth-modal">
         <div class="modal">
             <h3>管理者パスワード</h3>
@@ -364,7 +409,7 @@
     </button>
 
     <script>
-        // Firebase 設定情報の直接埋め込み
+        // Firebase 設定情報
         const firebaseConfig = {
             apiKey: "AIzaSyAeKKJheVoVsEkhFJNiRvGR00kKQhFlAb0",
             authDomain: "taisakun-98c80.firebaseapp.com",
@@ -376,6 +421,8 @@
         };
 
         let db = null;
+        let auth = null;
+        let currentUser = null;
 
         function initFirebase() {
             try {
@@ -383,11 +430,30 @@
                     firebase.initializeApp(firebaseConfig);
                 }
                 db = firebase.database();
+                auth = firebase.auth();
                 
+                // 認証状態の監視
+                auth.onAuthStateChanged(user => {
+                    currentUser = user;
+                    const nameEl = document.getElementById('user-display-name');
+                    const loginBtn = document.getElementById('login-open-btn');
+                    const logoutBtn = document.getElementById('logout-btn');
+
+                    if (user) {
+                        nameEl.textContent = user.displayName || user.email;
+                        loginBtn.style.display = 'none';
+                        logoutBtn.style.display = 'inline-block';
+                    } else {
+                        nameEl.textContent = '未ログイン';
+                        loginBtn.style.display = 'inline-block';
+                        logoutBtn.style.display = 'none';
+                    }
+                });
+
                 const badge = document.getElementById('fb-status-badge');
                 if(badge) { 
                     badge.className = 'fb-status fb-connected'; 
-                    badge.textContent = '🟢 クラウド(RTDB)自動接続成功'; 
+                    badge.textContent = '🟢 クラウド(RTDB & Auth)自動接続成功'; 
                 }
             } catch (e) {
                 console.error("Firebase初期化失敗:", e);
@@ -396,6 +462,56 @@
                     badge.className = 'fb-status fb-disconnected'; 
                     badge.textContent = '⚠️ 接続エラー'; 
                 }
+            }
+        }
+
+        // --- 認証関係の関数 ---
+        function openAuthModal() { document.getElementById('auth-user-modal').style.display = 'flex'; }
+        function closeAuthModal() { document.getElementById('auth-user-modal').style.display = 'none'; }
+
+        async function loginWithGoogle() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+                closeAuthModal();
+                showToast("Googleでログインしました！");
+            } catch (error) {
+                alert("ログイン失敗: " + error.message);
+            }
+        }
+
+        async function registerWithEmail() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            if(!email || !password) return alert("メールアドレスとパスワードを入力してください。");
+            try {
+                await auth.createUserWithEmailAndPassword(email, password);
+                closeAuthModal();
+                showToast("アカウントを新規登録しました！");
+            } catch (error) {
+                alert("登録失敗: " + error.message);
+            }
+        }
+
+        async function loginWithEmail() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            if(!email || !password) return alert("メールアドレスとパスワードを入力してください。");
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                closeAuthModal();
+                showToast("ログインしました！");
+            } catch (error) {
+                alert("ログイン失敗: " + error.message);
+            }
+        }
+
+        async function logout() {
+            try {
+                await auth.signOut();
+                showToast("ログアウトしました。");
+            } catch (error) {
+                alert("ログアウト失敗: " + error.message);
             }
         }
 
