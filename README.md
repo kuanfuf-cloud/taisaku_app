@@ -1,1 +1,804 @@
-# taisaku_app
+[Uploading gemini-code-1788855604544.html…]()
+# taisaku_app<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>対策アプリ</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --secondary: #10B981; 
+            --secondary-hover: #059669;
+            --sidebar-bg: #1F2937;
+            --sidebar-hover: #374151;
+            --bg: #F3F4F6;
+            --text: #1F2937;
+            --card-bg: #FFFFFF;
+            --danger: #EF4444;
+            --danger-hover: #DC2626;
+            --input-bg: #FFFFFF;
+            --input-border: #D1D5DB;
+            --item-bg: #FFFFFF;
+            --notice-bg: #FFFBEB;
+            --list-bg: #F9FAFB;
+        }
+
+        [data-theme="dark"] {
+            --bg: #111827;
+            --text: #F3F4F6;
+            --card-bg: #1F2937;
+            --sidebar-bg: #0F172A;
+            --sidebar-hover: #1E293B;
+            --input-bg: #374151;
+            --input-border: #4B5563;
+            --item-bg: #374151;
+            --notice-bg: #452c08;
+            --list-bg: #111827;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
+            background: var(--secondary); color: white; padding: 12px 25px; border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-weight: bold; font-size: 1rem;
+            z-index: 2000; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+        .toast.show { top: 20px; }
+        .toast.rank-up { background: #F59E0B; }
+
+        .sidebar { width: 260px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; transition: all 0.3s ease; z-index: 10; }
+        .sidebar-header { padding: 20px; font-size: 1.2rem; font-weight: bold; background-color: rgba(0,0,0,0.2); text-align: center; }
+        .nav-list { list-style: none; padding: 10px 0; overflow-y: auto; flex-grow: 1; }
+        .nav-item { padding: 15px 20px; cursor: pointer; transition: all 0.2s ease; border-left: 4px solid transparent; }
+        .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); border-left-color: var(--primary); }
+
+        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; position: relative; }
+        .container { max-width: 800px; margin: 0 auto; background: var(--card-bg); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); min-height: 500px; position: relative; overflow: hidden; transition: background-color 0.3s; margin-top: 20px; }
+
+        .theme-switch { position: absolute; top: 20px; right: 40px; display: flex; gap: 10px; z-index: 50; }
+        .theme-switch button { background: var(--card-bg); border: 1px solid var(--input-border); color: var(--text); border-radius: 50%; width: 45px; height: 45px; cursor: pointer; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .theme-switch button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); border-color: var(--primary); }
+
+        .screen { display: none; padding: 40px; flex-direction: column; }
+        .screen.active { display: flex; animation: fadeIn 0.4s ease forwards; }
+
+        h1, h2, h3 { text-align: center; margin-bottom: 20px; color: var(--text); }
+        
+        .notice-board { background: var(--notice-bg); border-left: 5px solid #F59E0B; padding: 20px; border-radius: 8px; margin-bottom: 20px; animation: slideIn 0.5s ease forwards; transition: background-color 0.3s; }
+        .notice-board h3 { text-align: left; margin-bottom: 10px; color: #D97706; font-size: 1.1rem; }
+        .notice-board p { white-space: pre-wrap; line-height: 1.6; }
+
+        .stats-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: var(--list-bg); border: 1px solid var(--input-border); border-radius: 10px; padding: 15px; text-align: center; }
+        .stat-num { font-size: 1.8rem; font-weight: bold; color: var(--primary); margin-bottom: 5px; }
+        .stat-label { font-size: 0.85rem; color: #6B7280; font-weight: bold; }
+        .stat-sub { font-size: 0.75rem; color: #9CA3AF; margin-top: 3px; }
+        
+        .random-q-box { background: var(--card-bg); border: 2px dashed var(--primary); border-radius: 10px; padding: 25px; text-align: center; margin-bottom: 20px; }
+        .random-q-box h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: 15px; }
+        .random-q-text { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; line-height: 1.5; }
+
+        .btn { background: var(--primary); color: white; border: none; padding: 15px 20px; border-radius: 10px; font-size: 1rem; cursor: pointer; transition: all 0.2s ease; text-align: center; width: 100%; margin-bottom: 15px; font-weight: bold; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .btn-primary { background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: var(--secondary); }
+        .btn-secondary:hover { background: var(--secondary-hover); }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .btn-outline { background: transparent; color: var(--text); border: 2px solid var(--input-border); }
+        .btn-outline:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-interrupt { background: transparent; color: var(--danger); border: 2px solid var(--danger); margin-top: 10px; }
+        .btn-interrupt:hover { background: var(--danger); color: white; }
+
+        .progress { text-align: center; color: #6B7280; font-size: 1rem; margin-bottom: 20px; font-weight: bold; }
+        .question-box { font-size: 1.4rem; font-weight: bold; line-height: 1.6; text-align: center; margin-bottom: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center; position: relative;}
+        .answer-box { font-size: 1.6rem; font-weight: bold; color: var(--danger); text-align: center; margin-bottom: 30px; min-height: 80px; display: flex; align-items: center; justify-content: center; border-top: 2px dashed var(--input-border); visibility: hidden; opacity: 0; transition: opacity 0.3s ease; }
+        .answer-box.show { visibility: visible; opacity: 1; }
+
+        .choice-btn { font-size: 1.2rem; padding: 15px; text-align: center; margin-bottom: 10px; }
+        .choice-btn:disabled { cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .result-mark {
+            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%) scale(0.5);
+            font-size: 12rem; opacity: 0; pointer-events: none; z-index: 100;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        .result-mark.show-correct { opacity: 0.95; transform: translate(-50%, -50%) scale(1); color: var(--secondary); }
+        .result-mark.show-wrong { opacity: 0.95; transform: translate(-50%, -50%) scale(1); color: var(--danger); }
+
+        .admin-section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--input-border); }
+        .admin-section h3 { text-align: left; margin-bottom: 12px; font-size: 1.1rem; color: var(--text); }
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .input-group input, .input-group select, textarea { flex-grow: 1; padding: 12px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 1rem; background: var(--input-bg); color: var(--text); transition: all 0.3s; }
+        .input-group input:focus, .input-group select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        .input-group button { width: auto; margin-bottom: 0; padding: 12px 20px; flex-shrink: 0; }
+        .settings-list { max-height: 250px; overflow-y: auto; margin-bottom: 20px; background: var(--list-bg); border-radius: 10px; padding: 10px; }
+        .settings-item { background: var(--item-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .settings-item-text { font-size: 0.95rem; line-height: 1.4; }
+        .delete-btn { background: var(--danger); color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
+        
+        .admin-btn { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--primary); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center; cursor: pointer; border: none; transition: all 0.3s; z-index: 100; }
+        .admin-btn:hover { transform: rotate(90deg) scale(1.1); background: var(--primary-hover); }
+        .admin-btn svg { width: 28px; height: 28px; fill: white; }
+        
+        .version-text { position: fixed; bottom: 8px; right: 15px; font-size: 0.8rem; color: #9CA3AF; z-index: 90; pointer-events: none; font-weight: bold; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(3px); }
+        .modal { background: var(--card-bg); color: var(--text); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+        .modal input { width: 100%; padding: 15px; margin: 20px 0; border: 2px solid var(--input-border); border-radius: 10px; font-size: 1.2rem; text-align: center; outline: none; background: var(--input-bg); color: var(--text); }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; flex-direction: row; align-items: center; }
+            .sidebar-header { padding: 15px; }
+            .nav-list { display: flex; overflow-x: auto; padding: 0; }
+            .nav-item { white-space: nowrap; border-left: none; border-bottom: 4px solid transparent; }
+            .main-content { padding: 20px; padding-top: 70px; }
+            .theme-switch { top: 10px; right: 10px; }
+            .stats-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="toast">メッセージ</div>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">対策アプリ</div>
+        <ul class="nav-list" id="nav-list"></ul>
+    </aside>
+
+    <main class="main-content">
+        <div class="theme-switch">
+            <button onclick="setTheme('light')" title="ホワイトモードにする">☀️</button>
+            <button onclick="setTheme('dark')" title="ダークモードにする">🌙</button>
+        </div>
+
+        <div class="container">
+            
+            <!-- ホーム画面 -->
+            <div id="home-screen" class="screen active">
+                <h2>ホーム</h2>
+
+                <!-- ログインフォーム領域（アプリ内にキレイに配置） -->
+                <div style="max-width: 360px; margin: 0 auto 25px auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: var(--list-bg); border-radius: 12px; border: 1px solid var(--input-border);">
+                  <h3 style="margin-bottom: 5px; font-size: 1.1rem;">🔑 ログイン</h3>
+                  <input type="email" id="email" placeholder="メール" style="padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text);">
+                  <input type="password" id="password" placeholder="パスワード" style="padding: 10px; border-radius: 6px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text);">
+                  
+                  <div style="display: flex; gap: 8px;">
+                    <button id="email-login-btn" class="btn btn-primary" style="flex: 1; padding: 10px; margin-bottom: 0;">メール</button>
+                    <button id="google-login-btn" class="btn btn-secondary" style="flex: 1; padding: 10px; margin-bottom: 0;">Google</button>
+                  </div>
+                </div>
+                
+                <div class="notice-board">
+                    <h3>📢 お知らせ</h3>
+                    <p id="notice-text">読み込み中...</p>
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-box" style="border-color: #F59E0B; background: rgba(245,158,11,0.05);">
+                        <div class="stat-num" id="stat-rank" style="color:#F59E0B;">1</div>
+                        <div class="stat-label">現在のランク</div>
+                        <div class="stat-sub" id="stat-next-rank">あと10pt</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num" id="stat-points">0</div>
+                        <div class="stat-label">所持ポイント</div>
+                        <div class="stat-sub" id="stat-next-point">あと10問</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num" id="stat-test-count">0</div>
+                        <div class="stat-label">登録テスト数</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-num" id="stat-q-count">0</div>
+                        <div class="stat-label">総問題数</div>
+                    </div>
+                </div>
+
+                <div class="random-q-box" id="random-q-container">
+                    <h3>💡 今日のワンポイント復習</h3>
+                    <p class="random-q-text" id="random-q-text">問題を読み込み中...</p>
+                    <button class="btn btn-outline" style="width: auto; padding: 10px 30px;" onclick="showRandomAnswer()" id="random-a-btn">答えを見る</button>
+                    <p id="random-a-text" style="display:none; color:var(--danger); font-weight:bold; font-size:1.4rem; margin-top:15px;"></p>
+                </div>
+
+                <p style="text-align: center; color: #6B7280; margin-top: 20px;">左のメニューからテストを選択して学習を始めましょう。</p>
+            </div>
+
+            <!-- テスト開始画面 -->
+            <div id="test-intro-screen" class="screen">
+                <h2 id="intro-title">テストタイトル</h2>
+                <p style="text-align: center; margin-bottom: 5px; font-size: 1.2rem; font-weight: bold;">問題数: <span id="intro-count">0</span>問</p>
+                <p style="text-align: center; margin-bottom: 10px; font-size: 0.95rem; color: var(--primary); font-weight: bold;" id="intro-type">形式: 一問一答</p>
+                
+                <p style="text-align: center; margin-bottom: 30px; font-size: 0.95rem; color: #6B7280; background: var(--list-bg); padding: 10px; border-radius: 8px; display: inline-block; align-self: center;" id="intro-time">
+                    ⏳ 目安時間: 約 -- 分
+                </p>
+
+                <button class="btn btn-primary" onclick="startTest()">テストを始める</button>
+            </div>
+
+            <!-- テスト実行画面 -->
+            <div id="test-screen" class="screen" style="position: relative;">
+                <div id="result-mark" class="result-mark"></div>
+
+                <div class="progress" id="progress">Q. 1 / 50</div>
+                <div class="question-box" id="question-text">問題文</div>
+                
+                <div id="qa-ui">
+                    <div class="answer-box" id="answer-text">答え</div>
+                    <button class="btn btn-primary" id="action-btn" onclick="handleAction()">答えを見る</button>
+                </div>
+
+                <div id="choice-ui" style="display: none; flex-direction: column;">
+                    <button class="btn btn-outline choice-btn" onclick="checkChoice(0)">選択肢1</button>
+                    <button class="btn btn-outline choice-btn" onclick="checkChoice(1)">選択肢2</button>
+                    <button class="btn btn-outline choice-btn" onclick="checkChoice(2)">選択肢3</button>
+                    
+                    <div style="min-height: 50px; margin-top: 15px;">
+                        <button class="btn btn-secondary" id="next-choice-btn" onclick="nextChoiceQuestion()" style="visibility: hidden;">次の問題へ</button>
+                    </div>
+                </div>
+
+                <button class="btn btn-interrupt" onclick="selectTest(currentTestId)">テストを中断</button>
+            </div>
+
+            <!-- 完了画面 -->
+            <div id="result-screen" class="screen">
+                <h2>テスト終了！</h2>
+                <p style="text-align: center; margin-bottom: 30px; font-size: 1.2rem;">お疲れ様でした！</p>
+                <button class="btn btn-primary" onclick="selectTest(currentTestId)">もう一度挑戦する</button>
+                <button class="btn btn-outline" onclick="goHome()">ホームに戻る</button>
+            </div>
+
+            <!-- 設定画面 -->
+            <div id="settings-screen" class="screen">
+                <h2>管理者メニュー</h2>
+
+                <div class="admin-section">
+                    <h3>📢 お知らせの編集</h3>
+                    <textarea id="notice-input" rows="3" placeholder="ホーム画面に表示するお知らせを入力"></textarea>
+                    <button class="btn btn-primary" onclick="updateNotice()" style="margin-top: 8px;">お知らせを更新</button>
+                </div>
+
+                <div class="admin-section">
+                    <h3>➕ 新しいテストを作成</h3>
+                    <div class="input-group">
+                        <select id="new-test-type" style="max-width: 150px;">
+                            <option value="qa">一問一答</option>
+                            <option value="3choice">３択問題</option>
+                        </select>
+                        <input type="text" id="new-test-title" placeholder="新しいテストの名前">
+                        <button class="btn btn-primary" onclick="createNewTest()">作成</button>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h3>🤖 AI自動問題生成（一括追加）</h3>
+                    <p style="font-size: 0.85rem; margin-bottom: 10px; color: #6B7280; line-height: 1.5;">
+                        AIに生成してもらったテキストを貼り付けて一括追加します。<br>
+                        <strong>一問一答：</strong> 「問題, 答え」<br>
+                        <strong>３択問題：</strong> 「問題, 答え, 間違い1, 間違い2」
+                    </p>
+                    <select id="ai-test-select" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px;"></select>
+                    <textarea id="ai-import-text" rows="4" placeholder="ここに貼り付けてください..."></textarea>
+                    <button class="btn" onclick="importFromAI()" style="margin-top: 8px; background: #10B981;">AIの問題を一括追加する</button>
+                </div>
+
+                <div class="admin-section">
+                    <h3>📝 個別問題の追加・管理</h3>
+                    <select id="admin-test-select" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px;" onchange="renderSettingsQuestions()"></select>
+                    
+                    <div class="input-group" id="qa-inputs">
+                        <input type="text" id="new-q-text" placeholder="問題文を入力">
+                        <input type="text" id="new-a-text" placeholder="答えを入力">
+                        <button class="btn btn-primary" onclick="addQuestion()">追加</button>
+                    </div>
+
+                    <div class="input-group" id="choice-inputs" style="display: none;">
+                        <input type="text" id="new-c-q" placeholder="問題文を入力" style="width: 100%;">
+                        <input type="text" id="new-c-a" placeholder="⭕️ 正解">
+                        <input type="text" id="new-c-w1" placeholder="❌ 間違い1">
+                        <input type="text" id="new-c-w2" placeholder="❌ 間違い2">
+                        <button class="btn btn-primary" onclick="addQuestion()">追加</button>
+                    </div>
+
+                    <div class="settings-list" id="settings-list"></div>
+                    <button class="btn btn-danger" onclick="deleteCurrentTest()" style="margin-top: 10px;">選択中のテストをまるごと削除</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="version-text">Ver 4.3</div>
+
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal">
+            <h3>管理者パスワード</h3>
+            <p style="color:#6B7280; font-size:0.9rem; margin-top:5px;">パスワードを入力してください</p>
+            <input type="password" id="admin-pass" placeholder="****">
+            <button class="btn btn-primary" onclick="checkPassword()">ログイン</button>
+            <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
+        </div>
+    </div>
+
+    <button class="admin-btn" onclick="openModal()">
+        <svg viewBox="0 0 24 24">
+            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+        </svg>
+    </button>
+
+    <!-- アプリのメインロジック -->
+    <script>
+        const defaultQuestions = [
+            { q: "九州南部に広がる、火山灰が降り積もってできた台地を何というか。", a: "シラス台地" },
+            { q: "九州地方の南西に連なる島々を総称して何というか。", a: "南西諸島" }
+        ];
+
+        let appData = {
+            theme: "light",
+            notice: "明日は定期考査です！\n左のメニューからテストを選んで、最後の総復習をしましょう。",
+            tests: [
+                { id: "test_1", type: "qa", title: "地理 第一章 (一問一答)", questions: [...defaultQuestions] }
+            ],
+            solvedQuestions: 0
+        };
+
+        const savedData = localStorage.getItem('chiriTestData');
+        if (savedData) appData = JSON.parse(savedData);
+        if (!appData.solvedQuestions) appData.solvedQuestions = 0;
+
+        if(appData.theme === "dark") document.documentElement.setAttribute('data-theme', 'dark');
+
+        function saveData() {
+            localStorage.setItem('chiriTestData', JSON.stringify(appData));
+            updateSidebar();
+        }
+
+        function setTheme(themeMode) {
+            appData.theme = themeMode;
+            if(themeMode === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.removeAttribute('data-theme');
+            saveData();
+        }
+
+        let currentTestId = null;
+        let testPlayQuestions = [];
+        let currentQIndex = 0;
+        let isAnswerShown = false;
+        let currentChoices = [];
+        let currentQuestionScored = false;
+
+        function showToast(msg, isRankUp = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = isRankUp ? 'toast rank-up show' : 'toast show';
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        function addSolvedCount() {
+            if (currentQuestionScored) return;
+            
+            let oldPoints = Math.floor(appData.solvedQuestions / 10);
+            let oldRank = Math.floor(oldPoints / 10) + 1;
+            
+            appData.solvedQuestions++;
+            
+            let newPoints = Math.floor(appData.solvedQuestions / 10);
+            let newRank = Math.floor(newPoints / 10) + 1;
+            
+            if (newRank > oldRank) {
+                showToast(`🎉 ランク ${newRank} にアップしました！`, true);
+            } else if (newPoints > oldPoints) {
+                showToast(`🪙 1ポイント獲得！ (合計: ${newPoints}pt)`);
+            }
+            
+            saveData();
+            currentQuestionScored = true;
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            if(screenId === 'home-screen') {
+                document.getElementById('nav-home').classList.add('active');
+                renderHome();
+            } else if (screenId === 'settings-screen') {
+                renderSettings();
+            } else if (currentTestId) {
+                const activeNav = document.getElementById('nav-' + currentTestId);
+                if(activeNav) activeNav.classList.add('active');
+            }
+        }
+
+        function renderHome() {
+            document.getElementById('notice-text').textContent = appData.notice || "お知らせはありません。";
+            
+            let points = Math.floor(appData.solvedQuestions / 10);
+            let rank = Math.floor(points / 10) + 1;
+            let nextPointReq = 10 - (appData.solvedQuestions % 10);
+            let nextRankReq = 10 - (points % 10);
+
+            document.getElementById('stat-rank').textContent = rank;
+            document.getElementById('stat-next-rank').textContent = `次まであと ${nextRankReq}pt`;
+            document.getElementById('stat-points').textContent = points;
+            document.getElementById('stat-next-point').textContent = `次まであと ${nextPointReq}問`;
+
+            document.getElementById('stat-test-count').textContent = appData.tests.length;
+            const totalQ = appData.tests.reduce((sum, test) => sum + test.questions.length, 0);
+            document.getElementById('stat-q-count').textContent = totalQ;
+
+            const allQuestions = [];
+            appData.tests.forEach(t => { t.questions.forEach(q => allQuestions.push(q)); });
+
+            const randomBox = document.getElementById('random-q-container');
+            if (allQuestions.length > 0) {
+                randomBox.style.display = 'block';
+                const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+                document.getElementById('random-q-text').textContent = "Q. " + randomQ.q;
+                
+                const ansText = document.getElementById('random-a-text');
+                ansText.textContent = "A. " + randomQ.a;
+                ansText.style.display = 'none';
+                
+                const btn = document.getElementById('random-a-btn');
+                btn.style.display = 'inline-block';
+            } else {
+                randomBox.style.display = 'none';
+            }
+        }
+
+        function showRandomAnswer() {
+            document.getElementById('random-a-btn').style.display = 'none';
+            document.getElementById('random-a-text').style.display = 'block';
+        }
+
+        function updateSidebar() {
+            const navList = document.getElementById('nav-list');
+            navList.innerHTML = `<li class="nav-item active" id="nav-home" onclick="goHome()">🏠 ホーム</li>`;
+            
+            appData.tests.forEach(test => {
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                li.id = 'nav-' + test.id;
+                const typeIcon = (test.type === "3choice") ? "🎲" : "📝";
+                li.textContent = `${typeIcon} ${test.title}`;
+                li.onclick = () => selectTest(test.id);
+                navList.appendChild(li);
+            });
+        }
+
+        function goHome() {
+            currentTestId = null;
+            showScreen('home-screen');
+        }
+
+        function selectTest(testId) {
+            currentTestId = testId;
+            const test = appData.tests.find(t => t.id === testId);
+            if(test) {
+                document.getElementById('intro-title').textContent = test.title;
+                const qCount = test.questions.length;
+                document.getElementById('intro-count').textContent = qCount;
+                document.getElementById('intro-type').textContent = (test.type === "3choice") ? "形式: ３択問題" : "形式: 一問一答";
+                
+                const totalSeconds = qCount * 8;
+                const mins = Math.floor(totalSeconds / 60);
+                const secs = totalSeconds % 60;
+                let timeStr = "";
+                if (mins > 0) timeStr += `${mins}分`;
+                if (secs > 0 || mins === 0) timeStr += `${secs}秒`;
+                
+                document.getElementById('intro-time').textContent = `⏳ 目安時間: 約 ${timeStr}`;
+                
+                showScreen('test-intro-screen');
+            }
+        }
+
+        function startTest() {
+            const test = appData.tests.find(t => t.id === currentTestId);
+            if (!test || test.questions.length === 0) {
+                alert("このテストには問題が登録されていません。"); return;
+            }
+            testPlayQuestions = [...test.questions];
+            currentQIndex = 0;
+            showScreen('test-screen');
+            loadQuestion();
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function loadQuestion() {
+            const test = appData.tests.find(t => t.id === currentTestId);
+            const is3Choice = (test.type === "3choice");
+            const qData = testPlayQuestions[currentQIndex];
+
+            currentQuestionScored = false;
+
+            const mark = document.getElementById('result-mark');
+            mark.className = 'result-mark';
+            mark.textContent = '';
+
+            document.getElementById('progress').textContent = `Q. ${currentQIndex + 1} / ${testPlayQuestions.length}`;
+            document.getElementById('question-text').textContent = qData.q;
+
+            if (is3Choice) {
+                document.getElementById('qa-ui').style.display = 'none';
+                document.getElementById('choice-ui').style.display = 'flex';
+                document.getElementById('next-choice-btn').style.visibility = 'hidden';
+
+                currentChoices = [
+                    { text: qData.a, isCorrect: true },
+                    { text: qData.w1, isCorrect: false },
+                    { text: qData.w2, isCorrect: false }
+                ];
+                shuffleArray(currentChoices);
+
+                const btns = document.querySelectorAll('.choice-btn');
+                btns.forEach((btn, index) => {
+                    btn.textContent = currentChoices[index].text;
+                    btn.disabled = false;
+                    btn.className = 'btn btn-outline choice-btn';
+                });
+            } else {
+                document.getElementById('choice-ui').style.display = 'none';
+                document.getElementById('qa-ui').style.display = 'block';
+                isAnswerShown = false;
+                document.getElementById('answer-text').textContent = qData.a;
+                document.getElementById('answer-text').classList.remove('show');
+                
+                const actionBtn = document.getElementById('action-btn');
+                actionBtn.textContent = '答えを見る';
+                actionBtn.className = 'btn btn-primary';
+            }
+        }
+
+        function handleAction() {
+            if (!isAnswerShown) {
+                document.getElementById('answer-text').classList.add('show');
+                const actionBtn = document.getElementById('action-btn');
+                actionBtn.textContent = '次の問題へ';
+                actionBtn.className = 'btn btn-secondary';
+                isAnswerShown = true;
+                
+                addSolvedCount();
+            } else {
+                goNext();
+            }
+        }
+
+        function checkChoice(index) {
+            const btns = document.querySelectorAll('.choice-btn');
+            btns.forEach(b => b.disabled = true);
+
+            const mark = document.getElementById('result-mark');
+
+            if (currentChoices[index].isCorrect) {
+                mark.textContent = '⭕️';
+                mark.classList.add('show-correct');
+                btns[index].classList.remove('btn-outline');
+                btns[index].classList.add('btn-primary');
+            } else {
+                mark.textContent = '❌';
+                mark.classList.add('show-wrong');
+                btns[index].classList.remove('btn-outline');
+                btns[index].classList.add('btn-danger');
+                
+                const correctIdx = currentChoices.findIndex(c => c.isCorrect);
+                btns[correctIdx].classList.remove('btn-outline');
+                btns[correctIdx].classList.add('btn-primary');
+            }
+            
+            document.getElementById('next-choice-btn').style.visibility = 'visible';
+            addSolvedCount();
+        }
+
+        function nextChoiceQuestion() { goNext(); }
+
+        function goNext() {
+            currentQIndex++;
+            if (currentQIndex < testPlayQuestions.length) loadQuestion();
+            else showScreen('result-screen');
+        }
+
+        function openModal() { document.getElementById('admin-pass').value = ''; document.getElementById('auth-modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
+        function checkPassword() {
+            if (document.getElementById('admin-pass').value === '1102') {
+                closeModal(); showScreen('settings-screen');
+            } else { alert('パスワードが違います。'); }
+        }
+
+        function updateNotice() { appData.notice = document.getElementById('notice-input').value; saveData(); alert('お知らせを更新しました！'); }
+
+        function renderSettings() {
+            document.getElementById('notice-input').value = appData.notice || '';
+            const select = document.getElementById('admin-test-select');
+            const aiSelect = document.getElementById('ai-test-select');
+            select.innerHTML = ''; aiSelect.innerHTML = '';
+            
+            appData.tests.forEach(test => {
+                const mark = (test.type === "3choice") ? "🎲" : "📝";
+                const opt = document.createElement('option'); opt.value = test.id; opt.textContent = `${mark} ${test.title}`;
+                select.appendChild(opt);
+                const opt2 = document.createElement('option'); opt2.value = test.id; opt2.textContent = `${mark} ${test.title}`;
+                aiSelect.appendChild(opt2);
+            });
+            renderSettingsQuestions();
+        }
+
+        function renderSettingsQuestions() {
+            const list = document.getElementById('settings-list');
+            list.innerHTML = '';
+            const targetId = document.getElementById('admin-test-select').value;
+            const test = appData.tests.find(t => t.id === targetId);
+            if(!test) return;
+
+            const type = test.type || "qa";
+            document.getElementById('qa-inputs').style.display = (type === "qa") ? 'flex' : 'none';
+            document.getElementById('choice-inputs').style.display = (type === "3choice") ? 'flex' : 'none';
+            
+            test.questions.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'settings-item';
+                if (type === "qa") {
+                    div.innerHTML = `<div class="settings-item-text"><strong>Q${index+1}:</strong> ${item.q}<br><span style="color:var(--danger)">A: ${item.a}</span></div><button class="delete-btn" onclick="deleteQuestion('${test.id}', ${index})">削除</button>`;
+                } else {
+                    div.innerHTML = `<div class="settings-item-text"><strong>Q${index+1}:</strong> ${item.q}<br><span style="color:var(--primary)">⭕️ ${item.a}</span><br><span style="color:#6B7280; font-size:0.85rem;">❌ ${item.w1} / ${item.w2}</span></div><button class="delete-btn" onclick="deleteQuestion('${test.id}', ${index})">削除</button>`;
+                }
+                list.appendChild(div);
+            });
+        }
+
+        function createNewTest() {
+            const title = document.getElementById('new-test-title').value.trim();
+            if(title === '') return alert('タイトルを入力してください。');
+            appData.tests.push({ id: 'test_' + Date.now(), type: document.getElementById('new-test-type').value, title: title, questions: [] });
+            document.getElementById('new-test-title').value = '';
+            saveData(); renderSettings(); alert(`「${title}」を作成しました！`);
+        }
+
+        function addQuestion() {
+            const test = appData.tests.find(t => t.id === document.getElementById('admin-test-select').value);
+            if (test.type === "qa") {
+                const q = document.getElementById('new-q-text').value.trim(), a = document.getElementById('new-a-text').value.trim();
+                if(q==='' || a==='') return alert('入力してください。');
+                test.questions.push({ q, a });
+                document.getElementById('new-q-text').value = ''; document.getElementById('new-a-text').value = '';
+            } else {
+                const q = document.getElementById('new-c-q').value.trim(), a = document.getElementById('new-c-a').value.trim(), w1 = document.getElementById('new-c-w1').value.trim(), w2 = document.getElementById('new-c-w2').value.trim();
+                if(q===''||a===''||w1===''||w2==='') return alert('全て入力してください。');
+                test.questions.push({ q, a, w1, w2 });
+                document.getElementById('new-c-q').value=''; document.getElementById('new-c-a').value=''; document.getElementById('new-c-w1').value=''; document.getElementById('new-c-w2').value='';
+            }
+            saveData(); renderSettingsQuestions();
+        }
+
+        function importFromAI() {
+            const text = document.getElementById('ai-import-text').value.trim();
+            if(!text) return;
+            const test = appData.tests.find(t => t.id === document.getElementById('ai-test-select').value);
+            let added = 0;
+            text.split('\n').forEach(line => {
+                let parts = line.split(/[\t,，、]/);
+                if (test.type === "qa" && parts.length >= 2) {
+                    test.questions.push({ q: parts[0].trim(), a: parts[1].trim() }); added++;
+                } else if (test.type === "3choice" && parts.length >= 4) {
+                    test.questions.push({ q: parts[0].trim(), a: parts[1].trim(), w1: parts[2].trim(), w2: parts[3].trim() }); added++;
+                }
+            });
+            if(added > 0) { document.getElementById('ai-import-text').value = ''; saveData(); renderSettings(); alert(`${added}問追加しました！`); }
+            else alert('形式が正しくありません。');
+        }
+
+        function deleteQuestion(testId, qIndex) {
+            if (confirm('削除しますか？')) {
+                appData.tests.find(t => t.id === testId).questions.splice(qIndex, 1);
+                saveData(); renderSettingsQuestions();
+            }
+        }
+
+        function deleteCurrentTest() {
+            const id = document.getElementById('admin-test-select').value;
+            if (confirm('テストをまるごと削除しますか？')) {
+                appData.tests = appData.tests.filter(t => t.id !== id);
+                saveData(); renderSettings(); if(currentTestId === id) goHome();
+            }
+        }
+
+        document.getElementById('admin-pass').addEventListener('keypress', e => { if(e.key === 'Enter') checkPassword(); });
+
+        updateSidebar();
+        renderHome();
+    </script>
+
+    <!-- Firebase ログイン処理 -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+      import { 
+        getAuth, 
+        signInWithEmailAndPassword, 
+        GoogleAuthProvider, 
+        signInWithPopup, 
+        onAuthStateChanged 
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAiGnVJ-Sa_Smw2PIbOJMwidNh0LUrvoXg",
+        authDomain: "taisaku-app-be48b.firebaseapp.com",
+        projectId: "taisaku-app-be48b",
+        storageBucket: "taisaku-app-be48b.firebasestorage.app",
+        messagingSenderId: "188674110456",
+        appId: "1:188674110456:web:db54bd8408138ca5f45c0d"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const googleProvider = new GoogleAuthProvider();
+
+      document.getElementById('email-login-btn').addEventListener('click', async () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          alert("ログイン成功！");
+        } catch (error) {
+          alert("エラー: " + error.message);
+        }
+      });
+
+      document.getElementById('google-login-btn').addEventListener('click', async () => {
+        try {
+          await signInWithPopup(auth, googleProvider);
+          alert("Googleログイン成功！");
+        } catch (error) {
+          alert("エラー: " + error.message);
+        }
+      });
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          console.log("ログイン中:", user.email || user.displayName);
+        } else {
+          console.log("未ログイン");
+        }
+      });
+    </script>
+</body>
+</html>
