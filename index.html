@@ -157,14 +157,16 @@
         .settings-item-text { font-size: 0.95rem; line-height: 1.4; }
         .delete-btn { background: var(--danger); color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
         
-        .admin-btn { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: var(--primary); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center; cursor: pointer; border: none; transition: all 0.3s; z-index: 100; }
-        .admin-btn:hover { transform: rotate(90deg) scale(1.1); background: var(--primary-hover); }
-        .admin-btn svg { width: 28px; height: 28px; fill: white; }
+        .float-btn-group { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 15px; z-index: 100; }
+        .float-btn { width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center; cursor: pointer; border: none; transition: all 0.3s; background: var(--primary); }
+        .float-btn:hover { transform: scale(1.1); background: var(--primary-hover); }
+        .float-btn svg { width: 28px; height: 28px; fill: white; }
+        .settings-btn:hover { transform: rotate(90deg) scale(1.1); }
         
         .version-text { position: fixed; bottom: 8px; right: 15px; font-size: 0.8rem; color: #9CA3AF; z-index: 90; pointer-events: none; font-weight: bold; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(3px); }
-        .modal { background: var(--card-bg); color: var(--text); padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+        .modal { background: var(--card-bg); color: var(--text); padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
         .modal input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--input-border); border-radius: 8px; font-size: 1rem; outline: none; background: var(--input-bg); color: var(--text); }
 
         .fb-status { font-size: 0.85rem; font-weight: bold; padding: 6px 12px; border-radius: 20px; display: inline-block; margin-bottom: 15px; }
@@ -176,6 +178,7 @@
         .divider::before { margin-right: .5em; }
         .divider::after { margin-left: .5em; }
 
+        /* モバイルモード用のレイアウト（メディアクエリとクラス指定） */
         @media (max-width: 768px) {
             body { flex-direction: column; }
             .sidebar { width: 100%; height: auto; flex-direction: row; align-items: center; }
@@ -187,6 +190,17 @@
             .theme-switch { top: 10px; right: 10px; }
             .stats-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
         }
+
+        body.mobile-mode { flex-direction: column; }
+        body.mobile-mode .sidebar { width: 100%; height: auto; flex-direction: row; align-items: center; }
+        body.mobile-mode .sidebar-header { padding: 15px; }
+        body.mobile-mode .user-panel { border-bottom: none; border-right: 1px solid rgba(255,255,255,0.1); padding: 10px; }
+        body.mobile-mode .nav-list { display: flex; overflow-x: auto; padding: 0; }
+        body.mobile-mode .nav-item { white-space: nowrap; border-left: none; border-bottom: 4px solid transparent; }
+        body.mobile-mode .main-content { padding: 20px; padding-top: 70px; }
+        body.mobile-mode .theme-switch { top: 10px; right: 10px; }
+        body.mobile-mode .stats-container { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
     </style>
 </head>
 <body>
@@ -297,77 +311,127 @@
                 <button class="btn btn-outline" onclick="goHome()">ホームに戻る</button>
             </div>
 
-            <!-- 設定画面 -->
+            <!-- 設定画面（パスワードなしで開ける） -->
             <div id="settings-screen" class="screen">
-                <h2>管理者メニュー</h2>
+                <h2>設定</h2>
 
-                <div class="admin-section" style="background: var(--list-bg); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary); text-align: center;">
-                    <h3>⚙️ クラウド（Firebase RTDB & Auth）接続状態</h3>
-                    <span id="fb-status-badge" class="fb-status fb-connected">🟢 クラウド自動接続中</span>
-                    <p style="font-size:0.85rem; color:#6B7280; margin-top:5px;">接続設定・認証機能組み込み済み。</p>
+                <!-- 一般設定（誰でも使える） -->
+                <div class="admin-section" style="background: var(--list-bg); padding: 15px; border-radius: 10px; margin-bottom: 30px;">
+                    <h3>📱 表示設定</h3>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                        <input type="checkbox" id="mobile-mode-checkbox" onchange="toggleMobileMode()" style="width: 20px; height: 20px;">
+                        <label for="mobile-mode-checkbox" style="font-size: 1rem; cursor: pointer; color: var(--text);">スマートフォンモードを有効にする</label>
+                    </div>
+                    <p style="font-size:0.85rem; color:#6B7280; margin-top:10px;">パソコンで開いていても、スマートフォンのような画面レイアウトになります。</p>
                 </div>
 
-                <div class="admin-section">
-                    <h3>📢 お知らせの編集</h3>
-                    <textarea id="notice-input" rows="3" placeholder="ホーム画面に表示するお知らせを入力"></textarea>
-                    <button class="btn btn-primary" onclick="updateNotice()" style="margin-top: 8px;">お知らせを更新</button>
-                </div>
-
-                <div class="admin-section">
-                    <h3>➕ 新しいテストを作成</h3>
-                    <div class="input-group">
-                        <select id="new-test-type" style="max-width: 150px;">
-                            <option value="qa">一問一答</option>
-                            <option value="3choice">３択問題</option>
-                        </select>
-                        <input type="text" id="new-test-title" placeholder="新しいテストの名前">
-                        <button class="btn btn-primary" onclick="createNewTest()">作成</button>
+                <!-- パスワード入力セクション -->
+                <div class="admin-section" id="admin-auth-section" style="text-align: center; border: 2px dashed var(--input-border); padding: 30px; border-radius: 15px;">
+                    <h3>🔒 管理者メニュー</h3>
+                    <p style="font-size: 0.9rem; color: #6B7280; margin-bottom: 15px;">テストの追加や編集を行うにはパスワードを入力してください</p>
+                    <div style="max-width: 300px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px;">
+                        <input type="password" id="admin-pass-inline" placeholder="管理者パスワード" style="text-align: center;">
+                        <button class="btn btn-primary" onclick="authAdmin()">ロックを解除</button>
                     </div>
                 </div>
 
-                <div class="admin-section">
-                    <h3>🤖 AI自動問題生成（一括追加）</h3>
-                    <p style="font-size: 0.85rem; margin-bottom: 10px; color: #6B7280; line-height: 1.5;">
-                        AIに生成してもらったテキストを貼り付けて一括追加します。<br>
-                        <strong>一問一答：</strong> 「問題, 答え」<br>
-                        <strong>３択問題：</strong> 「問題, 答え, 間違い1, 間違い2」
-                    </p>
-                    <select id="ai-test-select" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px;"></select>
-                    <textarea id="ai-import-text" rows="4" placeholder="ここに貼り付けてください..."></textarea>
-                    <button class="btn" onclick="importFromAI()" style="margin-top: 8px; background: #10B981;">AIの問題を一括追加する</button>
-                </div>
+                <!-- 管理者用コンテンツ（最初は隠れている） -->
+                <div id="admin-content" style="display: none;">
+                    <hr style="margin: 20px 0; border: none; border-top: 2px dashed var(--danger);">
+                    <h2 style="color: var(--danger); margin-bottom: 30px;">🛠️ 管理者専用メニュー</h2>
 
-                <div class="admin-section">
-                    <h3>📝 個別問題の追加・管理</h3>
-                    <select id="admin-test-select" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px;" onchange="renderSettingsQuestions()"></select>
-                    
-                    <div class="input-group" style="margin-bottom: 15px;">
-                        <button class="btn btn-secondary" onclick="publishTestToFirebase()" style="flex: 1; margin-bottom: 0; padding: 10px;">☁️ このテストをクラウドに公開</button>
-                        <button class="btn btn-outline" onclick="fetchTestsFromFirebase()" style="flex: 1; margin-bottom: 0; padding: 10px;">🔄 クラウドから再読み込み</button>
+                    <div class="admin-section" style="background: var(--list-bg); padding: 15px; border-radius: 10px; border: 1px dashed var(--primary); text-align: center;">
+                        <h3>⚙️ クラウド（Firebase RTDB & Auth）接続状態</h3>
+                        <span id="fb-status-badge" class="fb-status fb-connected">🟢 クラウド自動接続中</span>
+                        <p style="font-size:0.85rem; color:#6B7280; margin-top:5px;">接続設定・認証機能組み込み済み。</p>
                     </div>
 
-                    <div class="input-group" id="qa-inputs">
-                        <input type="text" id="new-q-text" placeholder="問題文を入力">
-                        <input type="text" id="new-a-text" placeholder="答えを入力">
-                        <button class="btn btn-primary" onclick="addQuestion()">追加</button>
+                    <div class="admin-section">
+                        <h3>📢 お知らせの編集</h3>
+                        <textarea id="notice-input" rows="3" placeholder="ホーム画面に表示するお知らせを入力"></textarea>
+                        <button class="btn btn-primary" onclick="updateNotice()" style="margin-top: 8px;">お知らせを更新</button>
                     </div>
 
-                    <div class="input-group" id="choice-inputs" style="display: none;">
-                        <input type="text" id="new-c-q" placeholder="問題文を入力" style="width: 100%;">
-                        <input type="text" id="new-c-a" placeholder="⭕️ 正解">
-                        <input type="text" id="new-c-w1" placeholder="❌ 間違い1">
-                        <input type="text" id="new-c-w2" placeholder="❌ 間違い2">
-                        <button class="btn btn-primary" onclick="addQuestion()">追加</button>
+                    <div class="admin-section">
+                        <h3>➕ 新しいテストを作成</h3>
+                        <div class="input-group">
+                            <select id="new-test-type" style="max-width: 150px;">
+                                <option value="qa">一問一答</option>
+                                <option value="3choice">３択問題</option>
+                            </select>
+                            <input type="text" id="new-test-title" placeholder="新しいテストの名前">
+                            <button class="btn btn-primary" onclick="createNewTest()">作成</button>
+                        </div>
                     </div>
 
-                    <div class="settings-list" id="settings-list"></div>
-                    <button class="btn btn-danger" onclick="deleteCurrentTest()" style="margin-top: 10px;">選択中のテストをまるごと削除</button>
+                    <div class="admin-section">
+                        <h3>🤖 AI自動問題生成（一括追加）</h3>
+                        <p style="font-size: 0.85rem; margin-bottom: 10px; color: #6B7280; line-height: 1.5;">
+                            AIに生成してもらったテキストを貼り付けて一括追加します。<br>
+                            <strong>一問一答：</strong> 「問題, 答え」<br>
+                            <strong>３択問題：</strong> 「問題, 答え, 間違い1, 間違い2」
+                        </p>
+                        <select id="ai-test-select" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px;"></select>
+                        <textarea id="ai-import-text" rows="4" placeholder="ここに貼り付けてください..."></textarea>
+                        <button class="btn" onclick="importFromAI()" style="margin-top: 8px; background: #10B981;">AIの問題を一括追加する</button>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>📝 個別問題の追加・管理</h3>
+                        <select id="admin-test-select" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px;" onchange="renderSettingsQuestions()"></select>
+                        
+                        <div class="input-group" style="margin-bottom: 15px;">
+                            <button class="btn btn-secondary" onclick="publishTestToFirebase()" style="flex: 1; margin-bottom: 0; padding: 10px;">☁️ このテストをクラウドに公開</button>
+                            <button class="btn btn-outline" onclick="fetchTestsFromFirebase()" style="flex: 1; margin-bottom: 0; padding: 10px;">🔄 クラウドから再読み込み</button>
+                        </div>
+
+                        <div class="input-group" id="qa-inputs">
+                            <input type="text" id="new-q-text" placeholder="問題文を入力">
+                            <input type="text" id="new-a-text" placeholder="答えを入力">
+                            <button class="btn btn-primary" onclick="addQuestion()">追加</button>
+                        </div>
+
+                        <div class="input-group" id="choice-inputs" style="display: none;">
+                            <input type="text" id="new-c-q" placeholder="問題文を入力" style="width: 100%;">
+                            <input type="text" id="new-c-a" placeholder="⭕️ 正解">
+                            <input type="text" id="new-c-w1" placeholder="❌ 間違い1">
+                            <input type="text" id="new-c-w2" placeholder="❌ 間違い2">
+                            <button class="btn btn-primary" onclick="addQuestion()">追加</button>
+                        </div>
+
+                        <div class="settings-list" id="settings-list"></div>
+                        <button class="btn btn-danger" onclick="deleteCurrentTest()" style="margin-top: 10px;">選択中のテストをまるごと削除</button>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <div class="version-text">Ver 5.4 (ユーザーごとの成績保存対応版)</div>
+    <div class="version-text">Ver 5.5 (ノート・スマホモード対応版)</div>
+
+    <!-- 右下のフローティングボタングループ -->
+    <div class="float-btn-group">
+        <!-- 📝 ノートボタン -->
+        <button class="float-btn" onclick="openNoteModal()" title="ノートを開く">
+            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        </button>
+        <!-- ⚙️ 設定ボタン -->
+        <button class="float-btn settings-btn" onclick="showScreen('settings-screen')" title="設定を開く">
+            <svg viewBox="0 0 24 24">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12,0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- 📝 ノート（下書き・計算用）モーダル -->
+    <div class="modal-overlay" id="note-modal">
+        <div class="modal" style="max-width: 600px; width: 95%;">
+            <h3>📝 ノート（下書き・計算）</h3>
+            <p style="color:#6B7280; font-size:0.85rem; margin-top:5px; margin-bottom:15px;">書いた内容は自動で保存されます</p>
+            <textarea id="note-textarea" rows="12" style="width:100%; padding:15px; border-radius:10px; border:1px solid var(--input-border); resize:vertical; background: var(--input-bg); color: var(--text);" placeholder="計算やメモにご利用ください..." oninput="saveNote()"></textarea>
+            <button class="btn btn-outline" onclick="closeNoteModal()" style="margin-top:15px;">閉じる</button>
+        </div>
+    </div>
 
     <!-- 🔑 ログイン・登録用モーダル -->
     <div class="modal-overlay" id="auth-user-modal">
@@ -390,23 +454,6 @@
             <button class="btn btn-outline" onclick="closeAuthModal()">閉じる</button>
         </div>
     </div>
-
-    <!-- 🔒 管理者用パスワードモーダル -->
-    <div class="modal-overlay" id="auth-modal">
-        <div class="modal">
-            <h3>管理者パスワード</h3>
-            <p style="color:#6B7280; font-size:0.9rem; margin-top:5px;">パスワードを入力してください</p>
-            <input type="password" id="admin-pass" placeholder="****">
-            <button class="btn btn-primary" onclick="checkPassword()">ログイン</button>
-            <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
-        </div>
-    </div>
-
-    <button class="admin-btn" onclick="openModal()">
-        <svg viewBox="0 0 24 24">
-            <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12,0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
-        </svg>
-    </button>
 
     <script>
         // Firebase 設定情報
@@ -502,7 +549,6 @@
                 showToast("Googleでログインしました！");
             } catch (error) {
                 console.error("Google Login Error:", error);
-                // ポップアップが制限された場合はリダイレクト方式に切り替え
                 if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
                     const provider = new firebase.auth.GoogleAuthProvider();
                     await auth.signInWithRedirect(provider);
@@ -554,6 +600,8 @@
 
         let appData = {
             theme: "light",
+            mobileMode: false,
+            noteText: "",
             notice: "明日は定期考査です！\n左のメニューからテストを選んで、最後の総復習をしましょう。",
             tests: [
                 { id: "test_1", type: "qa", title: "地理 第一章 (一問一答)", questions: [...defaultQuestions] }
@@ -562,7 +610,10 @@
         };
 
         const savedData = localStorage.getItem('chiriTestData');
-        if (savedData) appData = JSON.parse(savedData);
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            appData = { ...appData, ...parsed }; // 新しいプロパティが消えないようにマージ
+        }
         if (!appData.solvedQuestions) appData.solvedQuestions = 0;
 
         if(appData.theme === "dark") document.documentElement.setAttribute('data-theme', 'dark');
@@ -571,7 +622,6 @@
             localStorage.setItem('chiriTestData', JSON.stringify(appData));
             updateSidebar();
 
-            // ログイン中であれば、Firebaseのユーザー専用領域にも成績を保存
             if (currentUser && db) {
                 db.ref('users/' + currentUser.uid + '/stats').set({
                     solvedQuestions: appData.solvedQuestions
@@ -583,6 +633,37 @@
             appData.theme = themeMode;
             if(themeMode === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
             else document.documentElement.removeAttribute('data-theme');
+            saveData();
+        }
+
+        // --- スマートフォンモード関数 ---
+        function toggleMobileMode() {
+            appData.mobileMode = document.getElementById('mobile-mode-checkbox').checked;
+            applyMobileMode();
+            saveData();
+        }
+
+        function applyMobileMode() {
+            const cb = document.getElementById('mobile-mode-checkbox');
+            if (cb) cb.checked = appData.mobileMode;
+            
+            if (appData.mobileMode) {
+                document.body.classList.add('mobile-mode');
+            } else {
+                document.body.classList.remove('mobile-mode');
+            }
+        }
+
+        // --- ノート（下書き）関数 ---
+        function openNoteModal() {
+            document.getElementById('note-textarea').value = appData.noteText || '';
+            document.getElementById('note-modal').style.display = 'flex';
+        }
+        function closeNoteModal() {
+            document.getElementById('note-modal').style.display = 'none';
+        }
+        function saveNote() {
+            appData.noteText = document.getElementById('note-textarea').value;
             saveData();
         }
 
@@ -832,25 +913,38 @@
             else showScreen('result-screen');
         }
 
-        function openModal() { document.getElementById('admin-pass').value = ''; document.getElementById('auth-modal').style.display = 'flex'; }
-        function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
-        function checkPassword() {
-            if (document.getElementById('admin-pass').value === '1102') {
-                closeModal(); showScreen('settings-screen');
-            } else { alert('パスワードが違います。'); }
+        // --- 管理者認証と設定画面 ---
+        let isAdminAuthenticated = false;
+
+        function authAdmin() {
+            const pass = document.getElementById('admin-pass-inline').value;
+            if (pass === '1102') {
+                isAdminAuthenticated = true;
+                document.getElementById('admin-auth-section').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                document.getElementById('admin-pass-inline').value = '';
+                showToast("管理者メニューのロックを解除しました。");
+            } else {
+                alert('パスワードが違います。');
+            }
         }
 
-        function updateNotice() { 
-            appData.notice = document.getElementById('notice-input').value; 
-            saveData(); 
-            if (db) {
-                db.ref("settings/notice").set(appData.notice).catch(e => console.error(e));
-            }
-            alert('お知らせを更新しました！'); 
-        }
+        document.getElementById('admin-pass-inline').addEventListener('keypress', e => { 
+            if(e.key === 'Enter') authAdmin(); 
+        });
 
         function renderSettings() {
             document.getElementById('notice-input').value = appData.notice || '';
+            
+            // パスワード認証状態による表示切り替え
+            if (isAdminAuthenticated) {
+                document.getElementById('admin-auth-section').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+            } else {
+                document.getElementById('admin-auth-section').style.display = 'block';
+                document.getElementById('admin-content').style.display = 'none';
+            }
+
             const select = document.getElementById('admin-test-select');
             const aiSelect = document.getElementById('ai-test-select');
             select.innerHTML = ''; aiSelect.innerHTML = '';
@@ -863,6 +957,15 @@
                 aiSelect.appendChild(opt2);
             });
             renderSettingsQuestions();
+        }
+
+        function updateNotice() { 
+            appData.notice = document.getElementById('notice-input').value; 
+            saveData(); 
+            if (db) {
+                db.ref("settings/notice").set(appData.notice).catch(e => console.error(e));
+            }
+            alert('お知らせを更新しました！'); 
         }
 
         function renderSettingsQuestions() {
@@ -991,8 +1094,8 @@
             }
         }
 
-        document.getElementById('admin-pass').addEventListener('keypress', e => { if(e.key === 'Enter') checkPassword(); });
-
+        // 初期化処理
+        applyMobileMode();
         initFirebase();
         updateSidebar();
         renderHome();
